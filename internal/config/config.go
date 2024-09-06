@@ -18,7 +18,7 @@ var Cfg = Config{
 	RunAddr:              "localhost:8080",
 	LogLevel:             zap.InfoLevel,
 	AccrualSystemAddress: "",
-	DatabaseURI:          "",
+	DatabaseURI:          "postgres://postgres:Sp123456@localhost:5432/gofermart?sslmode=disable",
 }
 
 func Init() {

@@ -5,6 +5,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/handlers"
+	"github.com/spqrcor/gofermart/internal/services"
 	"log"
 	"net/http"
 )
@@ -18,13 +19,17 @@ func Start() {
 	r.Use(middleware.Compress(5, "application/json", "text/html"))
 	r.Use(getBodyMiddleware)
 
-	r.Post("/api/user/register", handlers.RegisterHandler)
-	r.Post("/api/user/login", handlers.LoginHandler)
-	r.Post("/api/user/orders", handlers.AddOrdersHandler)
-	r.Get("/api/user/orders", handlers.GetOrdersHandler)
-	r.Get("/api/user/balance", handlers.GetBalanceHandler)
-	r.Post("/api/user/balance/withdraw", handlers.BalanceWithdrawHandler)
-	r.Get("/api/user/withdrawals", handlers.GetWithdrawalsHandler)
+	userService := services.NewUserService()
+	orderService := services.NewOrderService()
+	withdrawalService := services.NewWithdrawalervice()
+
+	r.Post("/api/user/register", handlers.RegisterHandler(userService))
+	r.Post("/api/user/login", handlers.LoginHandler(userService))
+	r.Post("/api/user/orders", handlers.AddOrdersHandler(orderService))
+	r.Get("/api/user/orders", handlers.GetOrdersHandler(orderService))
+	r.Get("/api/user/balance", handlers.GetBalanceHandler(withdrawalService))
+	r.Post("/api/user/balance/withdraw", handlers.AddWithdrawalHandler(withdrawalService))
+	r.Get("/api/user/withdrawals", handlers.GetWithdrawalsHandler(withdrawalService))
 
 	r.HandleFunc(`/*`, func(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusBadRequest)
