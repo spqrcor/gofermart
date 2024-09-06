@@ -32,14 +32,14 @@ func Register(ctx context.Context, input InputDataUser) (uuid.UUID, error) {
 	}
 
 	baseUserID := ""
-	userId := uuid.NewString()
+	userID := uuid.NewString()
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 	err = db.Source.QueryRowContext(childCtx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3)  "+
-		"ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id", userId, input.Login, string(bytes)).Scan(&baseUserID)
+		"ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id", userID, input.Login, string(bytes)).Scan(&baseUserID)
 	if err != nil {
 		return uuid.Nil, err
-	} else if userId != baseUserID {
+	} else if userID != baseUserID {
 		return uuid.Nil, ErrLoginExists
 	}
 	return uuid.MustParse(baseUserID), nil

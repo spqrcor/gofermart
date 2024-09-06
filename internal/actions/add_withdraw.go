@@ -22,7 +22,7 @@ func AddWithdraw(ctx context.Context, input InputWithdraw) error {
 	if !isNumberValid(input.OrderNum) {
 		return ErrOrderInvalidFormat
 	}
-	userId := ctx.Value(authenticate.ContextUserID)
+	userID := ctx.Value(authenticate.ContextUserID)
 
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
@@ -31,7 +31,7 @@ func AddWithdraw(ctx context.Context, input InputWithdraw) error {
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(childCtx, "UPDATE users SET balance = balance - $2 WHERE id = $1", userId, input.Sum)
+	_, err = tx.ExecContext(childCtx, "UPDATE users SET balance = balance - $2 WHERE id = $1", userID, input.Sum)
 	if err != nil {
 		_ = tx.Rollback()
 		var pgError *pgconn.PgError
@@ -42,7 +42,7 @@ func AddWithdraw(ctx context.Context, input InputWithdraw) error {
 	}
 
 	var withdrawID string
-	err = tx.QueryRowContext(childCtx, "INSERT INTO withdraw_list (order_id, sum) SELECT id, $3 FROM orders WHERE user_id = $1 AND number = $2 RETURNING id", userId, input.OrderNum, input.Sum).Scan(&withdrawID)
+	err = tx.QueryRowContext(childCtx, "INSERT INTO withdraw_list (order_id, sum) SELECT id, $3 FROM orders WHERE user_id = $1 AND number = $2 RETURNING id", userID, input.OrderNum, input.Sum).Scan(&withdrawID)
 	if err != nil {
 		_ = tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
