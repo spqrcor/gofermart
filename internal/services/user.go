@@ -49,8 +49,8 @@ func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, 
 	userID := uuid.NewString()
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
-	err = db.Source.QueryRowContext(childCtx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3)  "+
-		"ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id", userID, input.Login, string(bytes)).Scan(&baseUserID)
+	err = db.Source.QueryRowContext(childCtx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3) ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id",
+		userID, input.Login, string(bytes)).Scan(&baseUserID)
 	if err != nil {
 		return uuid.Nil, err
 	} else if userID != baseUserID {

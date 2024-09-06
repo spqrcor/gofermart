@@ -40,7 +40,7 @@ type WithdrawalRepository interface {
 
 type WithdrawalService struct{}
 
-func NewWithdrawalervice() *WithdrawalService {
+func NewWithdrawalService() *WithdrawalService {
 	return &WithdrawalService{}
 }
 
@@ -68,7 +68,7 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 	}
 
 	var withdrawID string
-	err = tx.QueryRowContext(childCtx, "INSERT INTO withdraw_list (order_id, sum) SELECT id, $3 FROM orders WHERE user_id = $1 AND number = $2 RETURNING id", userID, input.OrderNum, input.Sum).Scan(&withdrawID)
+	err = tx.QueryRowContext(childCtx, "INSERT INTO withdrawals (order_id, sum) SELECT id, $3 FROM orders WHERE user_id = $1 AND number = $2 RETURNING id", userID, input.OrderNum, input.Sum).Scan(&withdrawID)
 	if err != nil {
 		_ = tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
@@ -87,8 +87,8 @@ func (w *WithdrawalService) GetAll(ctx context.Context) ([]Withdrawal, error) {
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
-	rows, err := db.Source.QueryContext(childCtx, "SELECT o.number, w.sum, w.created_at FROM withdrawals w "+
-		"INNER JOIN orders o ON o.id = w.order_id WHERE o.user_id = $1 ORDER BY w.created_at DESC", ctx.Value(authenticate.ContextUserID))
+	rows, err := db.Source.QueryContext(childCtx, "SELECT o.number, w.sum, w.created_at FROM withdrawals w INNER JOIN orders o ON o.id = w.order_id WHERE o.user_id = $1 ORDER BY w.created_at DESC",
+		ctx.Value(authenticate.ContextUserID))
 	if err != nil {
 		return nil, err
 	}
@@ -119,8 +119,8 @@ func (w *WithdrawalService) GetBalance(ctx context.Context) (BalanceInfo, error)
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
-	row := db.Source.QueryRowContext(childCtx, "SELECT balance, (SELECT COALESCE(SUM(w.sum), 0) FROM withdrawals w INNER JOIN orders o ON o.id = w.order_id WHERE o.user_id = u.id) "+
-		"FROM users u WHERE id = $1", ctx.Value(authenticate.ContextUserID))
+	row := db.Source.QueryRowContext(childCtx, "SELECT balance, (SELECT COALESCE(SUM(w.sum), 0) FROM withdrawals w INNER JOIN orders o ON o.id = w.order_id WHERE o.user_id = u.id) FROM users u WHERE id = $1",
+		ctx.Value(authenticate.ContextUserID))
 	if err := row.Scan(&balanceInfo.Current, &balanceInfo.Withdrawn); err != nil {
 		return balanceInfo, errors.New("user not found")
 	}

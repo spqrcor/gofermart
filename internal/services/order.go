@@ -41,15 +41,14 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 	}
 	var baseUserID, baseOrderID string
 	orderID := uuid.NewString()
-	userID := ctx.Value(authenticate.ContextUserID)
 
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 	err := db.Source.QueryRowContext(childCtx, "INSERT INTO orders (id, user_id, number) VALUES ($1, $2, $3)  "+
-		"ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id", orderID, userID, orderNum).Scan(&baseOrderID, &baseUserID)
+		"ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id", orderID, ctx.Value(authenticate.ContextUserID), orderNum).Scan(&baseOrderID, &baseUserID)
 	if err != nil {
 		return err
-	} else if userID != uuid.MustParse(baseUserID) {
+	} else if ctx.Value(authenticate.ContextUserID) != uuid.MustParse(baseUserID) {
 		return ErrOrderAnotherUserExists
 	} else if orderID != baseOrderID {
 		return ErrOrderUserExists

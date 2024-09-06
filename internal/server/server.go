@@ -21,7 +21,7 @@ func Start() {
 
 	userService := services.NewUserService()
 	orderService := services.NewOrderService()
-	withdrawalService := services.NewWithdrawalervice()
+	withdrawalService := services.NewWithdrawalService()
 
 	r.Post("/api/user/register", handlers.RegisterHandler(userService))
 	r.Post("/api/user/login", handlers.LoginHandler(userService))
