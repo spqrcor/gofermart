@@ -4,7 +4,7 @@ CREATE TABLE public.withdrawals (
                                id uuid DEFAULT gen_random_uuid() NOT NULL,
                                user_id uuid NOT NULL,
                                number varchar(20) NOT NULL,
-                               sum integer NOT NULL CHECK (sum > 0),
+                               sum numeric(12, 2) NOT NULL CHECK (sum > 0),
                                created_at timestamptz DEFAULT now() NOT NULL,
                                CONSTRAINT withdraw_list_pkey PRIMARY KEY (id)
 );

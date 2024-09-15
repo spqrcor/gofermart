@@ -14,19 +14,19 @@ import (
 )
 
 type InputWithdrawal struct {
-	OrderNum string `json:"order"`
-	Sum      int    `json:"sum"`
+	OrderNum string  `json:"order"`
+	Sum      float64 `json:"sum"`
 }
 
 type Withdrawal struct {
-	OrderNum    string `json:"order"`
-	Sum         int    `json:"sum"`
-	ProcessedAt string `json:"processed_at"`
+	OrderNum    string  `json:"order"`
+	Sum         float64 `json:"sum"`
+	ProcessedAt string  `json:"processed_at"`
 }
 
 type BalanceInfo struct {
-	Current   int `json:"current"`
-	Withdrawn int `json:"withdrawn"`
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
 }
 
 var ErrBalance = fmt.Errorf("balance error")

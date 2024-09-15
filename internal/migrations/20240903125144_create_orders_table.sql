@@ -7,7 +7,7 @@ CREATE TABLE public.orders (
                               user_id uuid NOT NULL,
                               number varchar(20) NOT NULL,
                               status e_order_status DEFAULT 'NEW' NOT NULL,
-                              accrual integer,
+                              accrual numeric(12, 2),
                               created_at timestamptz DEFAULT now() NOT NULL,
                               updated_at timestamptz,
                               CONSTRAINT orders_pkey PRIMARY KEY (id)

@@ -13,16 +13,16 @@ import (
 )
 
 type Order struct {
-	Number     string `json:"number"`
-	Status     string `json:"status"`
-	Accrual    int    `json:"accrual,omitempty"`
-	UploadedAt string `json:"uploaded_at"`
+	Number     string  `json:"number"`
+	Status     string  `json:"status"`
+	Accrual    float64 `json:"accrual,omitempty"`
+	UploadedAt string  `json:"uploaded_at"`
 }
 
 type OrderFromAccrual struct {
-	Order   string `json:"order"`
-	Status  string `json:"status"`
-	Accrual int    `json:"accrual,omitempty"`
+	Order   string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float64 `json:"accrual,omitempty"`
 }
 
 var ErrOrderAnotherUserExists = fmt.Errorf("order another user exists")
@@ -66,7 +66,7 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 
 func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 	var orders []Order
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*30)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
 	rows, err := db.Source.QueryContext(childCtx, "SELECT number, status, accrual, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC", ctx.Value(authenticate.ContextUserID))
@@ -84,11 +84,11 @@ func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 
 	for rows.Next() {
 		o := Order{}
-		var accrual sql.NullInt32
+		var accrual sql.NullFloat64
 		if err = rows.Scan(&o.Number, &o.Status, &accrual, &o.UploadedAt); err != nil {
 			return nil, err
 		}
-		o.Accrual = int(accrual.Int32)
+		o.Accrual = accrual.Float64
 		orders = append(orders, o)
 	}
 
