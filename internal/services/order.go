@@ -37,10 +37,12 @@ type OrderRepository interface {
 	ChangeStatus(ctx context.Context, data OrderFromAccrual) error
 }
 
-type OrderService struct{}
+type OrderService struct {
+	orderQueue chan string
+}
 
-func NewOrderService() *OrderService {
-	return &OrderService{}
+func NewOrderService(orderQueue chan string) *OrderService {
+	return &OrderService{orderQueue: orderQueue}
 }
 
 func (o *OrderService) Add(ctx context.Context, orderNum string) error {
@@ -61,6 +63,7 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 	} else if orderID != baseOrderID {
 		return ErrOrderUserExists
 	}
+	o.orderQueue <- orderNum
 	return nil
 }
 

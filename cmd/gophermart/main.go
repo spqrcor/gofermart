@@ -16,11 +16,14 @@ func main() {
 	logger.Init()
 	db.Init()
 
+	orderQueue := make(chan string)
+	defer close(orderQueue)
+
 	userService := services.NewUserService()
-	orderService := services.NewOrderService()
+	orderService := services.NewOrderService(orderQueue)
 	withdrawalService := services.NewWithdrawalService()
 
-	orderWorker := workers.NewOrderWorker(mainCtx, orderService)
+	orderWorker := workers.NewOrderWorker(mainCtx, orderService, orderQueue)
 	orderWorker.Run()
 
 	server.Start(userService, orderService, withdrawalService)
