@@ -16,7 +16,7 @@ func CheckOrder(OrderNum string) (services.OrderFromAccrual, int, error) {
 	if err != nil {
 		return data, 0, err
 	}
-	if resp.StatusCode != http.StatusTooManyRequests {
+	if resp.StatusCode == http.StatusTooManyRequests {
 		retryAfter := resp.Header.Get("Retry-After")
 		seconds, err := strconv.Atoi(retryAfter)
 		if err != nil {
