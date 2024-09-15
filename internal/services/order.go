@@ -19,6 +19,12 @@ type Order struct {
 	UploadedAt string `json:"uploaded_at"`
 }
 
+type OrderFromAccrual struct {
+	Order   string `json:"order"`
+	Status  string `json:"status"`
+	Accrual int    `json:"accrual,omitempty"`
+}
+
 var ErrOrderAnotherUserExists = fmt.Errorf("order another user exists")
 var ErrOrderUserExists = fmt.Errorf("order user exists")
 var ErrOrderInvalidFormat = fmt.Errorf("order invalid format")
@@ -27,6 +33,8 @@ var ErrOrdersNotFound = fmt.Errorf("orders not found")
 type OrderRepository interface {
 	Add(ctx context.Context, orderNum string) error
 	GetAll(ctx context.Context) ([]Order, error)
+	GetUnComplete(ctx context.Context) ([]string, error)
+	ChangeStatus(ctx context.Context, data OrderFromAccrual) error
 }
 
 type OrderService struct{}
@@ -88,4 +96,60 @@ func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 		return nil, ErrOrdersNotFound
 	}
 	return orders, nil
+}
+
+func (o *OrderService) GetUnComplete(ctx context.Context) ([]string, error) {
+	var orders []string
+
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
+	rows, err := db.Source.QueryContext(childCtx, "SELECT number FROM orders WHERE status IN ('NEW', 'PROCESSING') ORDER BY created_at")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Log.Error(err.Error())
+		}
+		if err := rows.Err(); err != nil {
+			logger.Log.Error(err.Error())
+		}
+	}()
+
+	for rows.Next() {
+		var orderNum string
+		if err = rows.Scan(&orderNum); err != nil {
+			return nil, err
+		}
+		orders = append(orders, orderNum)
+	}
+	return orders, nil
+}
+
+func (o *OrderService) ChangeStatus(ctx context.Context, data OrderFromAccrual) error {
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	defer cancel()
+
+	tx, err := db.Source.BeginTx(childCtx, nil)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(childCtx, "UPDATE orders SET status = $1, accrual =$2 WHERE number = $3", data.Status, data.Accrual, data.Order)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if data.Accrual > 0 {
+		_, err = tx.ExecContext(childCtx, "UPDATE users SET balance = balance + $1 WHERE id = (SELECT user_id FROM orders WHERE number = $2)", data.Accrual, data.Order)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	return nil
 }

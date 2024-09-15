@@ -12,16 +12,12 @@ import (
 
 var publicRoutes = []string{"/api/user/register", "/api/user/login"}
 
-func Start() {
+func Start(userService services.UserRepository, orderService services.OrderRepository, withdrawalService services.WithdrawalRepository) {
 	r := chi.NewRouter()
 	r.Use(authenticateMiddleware)
 	r.Use(loggerMiddleware)
 	r.Use(middleware.Compress(5, "application/json", "text/html"))
 	r.Use(getBodyMiddleware)
-
-	userService := services.NewUserService()
-	orderService := services.NewOrderService()
-	withdrawalService := services.NewWithdrawalService()
 
 	r.Post("/api/user/register", handlers.RegisterHandler(userService))
 	r.Post("/api/user/login", handlers.LoginHandler(userService))
@@ -34,6 +30,5 @@ func Start() {
 	r.HandleFunc(`/*`, func(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusBadRequest)
 	})
-
 	log.Fatal(http.ListenAndServe(config.Cfg.RunAddr, r))
 }
