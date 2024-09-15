@@ -5,7 +5,10 @@ import (
 	"github.com/spqrcor/gofermart/internal/client"
 	"github.com/spqrcor/gofermart/internal/logger"
 	"github.com/spqrcor/gofermart/internal/services"
+	"time"
 )
+
+const workerCount = 3
 
 type OrderWorker struct {
 	ctx          context.Context
@@ -18,16 +21,16 @@ func NewOrderWorker(ctx context.Context, orderService services.OrderRepository, 
 }
 
 func (w *OrderWorker) Run() {
-	w.fillQueue()
-	for i := 1; i <= 3; i++ {
+	go w.fillQueue()
+	for i := 1; i <= workerCount; i++ {
 		go w.worker()
 	}
 }
 
 func (w *OrderWorker) fillQueue() {
 	orders, _ := w.orderService.GetUnComplete(w.ctx)
-	for _, order := range orders {
-		w.orderQueue <- order
+	for _, orderNum := range orders {
+		w.orderQueue <- orderNum
 	}
 }
 
@@ -42,15 +45,18 @@ func (w *OrderWorker) worker() {
 				return
 			}
 
-			result, err := client.CheckOrder(orderNum)
+			result, sleepSeconds, err := client.CheckOrder(orderNum)
 			if err != nil {
 				logger.Log.Info(err.Error())
 			} else {
 				err = w.orderService.ChangeStatus(w.ctx, result)
 				if err != nil {
 					logger.Log.Info(err.Error())
-
 				}
+			}
+
+			if sleepSeconds > 0 {
+				time.Sleep(time.Duration(sleepSeconds) * time.Second)
 			}
 		}
 	}
