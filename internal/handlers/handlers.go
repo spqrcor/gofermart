@@ -64,8 +64,6 @@ func AddOrdersHandler(o services.OrderRepository) http.HandlerFunc {
 			return
 		}
 
-		//_, _ = client.CheckOrder(orderNum)
-
 		err = o.Add(req.Context(), orderNum)
 		if errors.Is(err, services.ErrOrderInvalidFormat) {
 			http.Error(res, err.Error(), http.StatusUnprocessableEntity)
@@ -80,9 +78,6 @@ func AddOrdersHandler(o services.OrderRepository) http.HandlerFunc {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
-		//_ = client.SendOrder(orderNum)
-
 		res.WriteHeader(http.StatusAccepted)
 	}
 }

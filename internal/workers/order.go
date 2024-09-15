@@ -18,9 +18,6 @@ func NewOrderWorker(ctx context.Context, orderService services.OrderRepository) 
 }
 
 func (w *OrderWorker) Send(orderNum string) error {
-	if err := client.SendOrder(orderNum); err != nil {
-		return err
-	}
 	data := services.OrderFromAccrual{Order: orderNum, Status: "PROCESSING"}
 	if err := w.orderService.ChangeStatus(w.ctx, data); err != nil {
 		return err
@@ -29,7 +26,6 @@ func (w *OrderWorker) Send(orderNum string) error {
 }
 
 func (w *OrderWorker) Run() {
-	//_ = client.SetReward()
 	go w.doInterval()
 }
 
