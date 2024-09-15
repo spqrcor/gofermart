@@ -66,7 +66,7 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 
 func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 	var orders []Order
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*30)
 	defer cancel()
 
 	rows, err := db.Source.QueryContext(childCtx, "SELECT number, status, accrual, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC", ctx.Value(authenticate.ContextUserID))
