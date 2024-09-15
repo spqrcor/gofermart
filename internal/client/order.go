@@ -16,6 +16,9 @@ func SendOrder(OrderNum string) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusAccepted {
 		return errors.New("Error " + resp.Status)
 	}
@@ -48,6 +51,9 @@ func SetReward() error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode != http.StatusOK {
 		return errors.New("Error " + resp.Status)
 	}
