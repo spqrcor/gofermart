@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/spqrcor/gofermart/internal/authenticate"
+	"github.com/spqrcor/gofermart/internal/client"
 	"github.com/spqrcor/gofermart/internal/services"
 	"github.com/spqrcor/gofermart/internal/utils"
 	"net/http"
@@ -81,7 +82,7 @@ func AddOrdersHandler(o services.OrderRepository) http.HandlerFunc {
 			return
 		}
 
-		//_ = client.SendOrder(orderNum)
+		_ = client.SendOrder(orderNum)
 
 		res.WriteHeader(http.StatusAccepted)
 	}
