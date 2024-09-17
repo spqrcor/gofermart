@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/spqrcor/gofermart/internal/authenticate"
-	"github.com/spqrcor/gofermart/internal/db"
-	"github.com/spqrcor/gofermart/internal/logger"
+	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/utils"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -39,10 +39,12 @@ type OrderRepository interface {
 
 type OrderService struct {
 	orderQueue chan string
+	db         *sql.DB
+	logger     *zap.Logger
 }
 
-func NewOrderService(orderQueue chan string) *OrderService {
-	return &OrderService{orderQueue: orderQueue}
+func NewOrderService(orderQueue chan string, db *sql.DB, logger *zap.Logger) *OrderService {
+	return &OrderService{orderQueue: orderQueue, db: db, logger: logger}
 }
 
 func (o *OrderService) Add(ctx context.Context, orderNum string) error {
@@ -52,9 +54,9 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 	var baseUserID, baseOrderID string
 	orderID := uuid.NewString()
 
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
-	err := db.Source.QueryRowContext(childCtx, "INSERT INTO orders (id, user_id, number) VALUES ($1, $2, $3)  "+
+	err := o.db.QueryRowContext(childCtx, "INSERT INTO orders (id, user_id, number) VALUES ($1, $2, $3)  "+
 		"ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id", orderID, ctx.Value(authenticate.ContextUserID), orderNum).Scan(&baseOrderID, &baseUserID)
 	if err != nil {
 		return err
@@ -69,19 +71,19 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 
 func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 	var orders []Order
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
 
-	rows, err := db.Source.QueryContext(childCtx, "SELECT number, status, accrual, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC", ctx.Value(authenticate.ContextUserID))
+	rows, err := o.db.QueryContext(childCtx, "SELECT number, status, accrual, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC", ctx.Value(authenticate.ContextUserID))
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			logger.Log.Error(err.Error())
+			o.logger.Error(err.Error())
 		}
 		if err := rows.Err(); err != nil {
-			logger.Log.Error(err.Error())
+			o.logger.Error(err.Error())
 		}
 	}()
 
@@ -104,19 +106,19 @@ func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 func (o *OrderService) GetUnComplete(ctx context.Context) ([]string, error) {
 	var orders []string
 
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*5)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
 
-	rows, err := db.Source.QueryContext(childCtx, "SELECT number FROM orders WHERE status IN ('NEW', 'PROCESSING') ORDER BY created_at")
+	rows, err := o.db.QueryContext(childCtx, "SELECT number FROM orders WHERE status IN ('NEW', 'PROCESSING') ORDER BY created_at")
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			logger.Log.Error(err.Error())
+			o.logger.Error(err.Error())
 		}
 		if err := rows.Err(); err != nil {
-			logger.Log.Error(err.Error())
+			o.logger.Error(err.Error())
 		}
 	}()
 
@@ -131,10 +133,10 @@ func (o *OrderService) GetUnComplete(ctx context.Context) ([]string, error) {
 }
 
 func (o *OrderService) ChangeStatus(ctx context.Context, data OrderFromAccrual) error {
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
 
-	tx, err := db.Source.BeginTx(childCtx, nil)
+	tx, err := o.db.BeginTx(childCtx, nil)
 	if err != nil {
 		return err
 	}
@@ -150,9 +152,5 @@ func (o *OrderService) ChangeStatus(ctx context.Context, data OrderFromAccrual) 
 			return err
 		}
 	}
-
-	if err = tx.Commit(); err != nil {
-		return err
-	}
-	return nil
+	return tx.Commit()
 }

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/spqrcor/gofermart/internal/db"
+	"github.com/spqrcor/gofermart/internal/config"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 )
@@ -30,10 +30,12 @@ type UserRepository interface {
 	Login(ctx context.Context, input InputDataUser) (uuid.UUID, error)
 }
 
-type UserService struct{}
+type UserService struct {
+	db *sql.DB
+}
 
-func NewUserService() *UserService {
-	return &UserService{}
+func NewUserService(db *sql.DB) *UserService {
+	return &UserService{db: db}
 }
 
 func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, error) {
@@ -47,9 +49,9 @@ func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, 
 
 	baseUserID := ""
 	userID := uuid.NewString()
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
-	err = db.Source.QueryRowContext(childCtx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3) ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id",
+	err = u.db.QueryRowContext(childCtx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3) ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id",
 		userID, input.Login, string(bytes)).Scan(&baseUserID)
 	if err != nil {
 		return uuid.Nil, err
@@ -60,9 +62,9 @@ func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, 
 }
 
 func (u *UserService) Login(ctx context.Context, input InputDataUser) (uuid.UUID, error) {
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
-	row := db.Source.QueryRowContext(childCtx, "SELECT id, password FROM users WHERE login = $1", input.Login)
+	row := u.db.QueryRowContext(childCtx, "SELECT id, password FROM users WHERE login = $1", input.Login)
 
 	var userID, password string
 	err := row.Scan(&userID, &password)

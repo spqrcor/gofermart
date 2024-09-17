@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/spqrcor/gofermart/internal/logger"
 	"net/http"
 	"strings"
 	"time"
@@ -62,9 +61,7 @@ func GetUserIDFromCookie(tokenString string) (uuid.UUID, error) {
 
 func SetCookie(rw http.ResponseWriter, UserID uuid.UUID) {
 	cookie, err := CreateCookie(UserID)
-	if err != nil {
-		logger.Log.Error(err.Error())
-	} else {
+	if err == nil {
 		http.SetCookie(rw, &cookie)
 	}
 }

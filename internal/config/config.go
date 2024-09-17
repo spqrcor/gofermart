@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
+	"time"
 )
 
 type Config struct {
@@ -12,13 +13,17 @@ type Config struct {
 	AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	LogLevel             zapcore.Level `env:"LOG_LEVEL"`
 	DatabaseURI          string        `env:"DATABASE_URI"`
+	QueryTimeOut         time.Duration `env:"QUERY_TIME_OUT"`
+	WorkerCount          int           `env:"WORKER_COUNT"`
 }
 
 var Cfg = Config{
 	RunAddr:              "localhost:8080",
 	LogLevel:             zap.InfoLevel,
 	AccrualSystemAddress: "",
-	DatabaseURI:          "",
+	DatabaseURI:          "postgres://postgres:Sp123456@localhost:5432/gofermart?sslmode=disable",
+	QueryTimeOut:         3,
+	WorkerCount:          3,
 }
 
 func Init() {

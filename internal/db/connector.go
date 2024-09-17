@@ -3,30 +3,34 @@ package db
 import (
 	"database/sql"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/spqrcor/gofermart/internal/config"
-	"github.com/spqrcor/gofermart/internal/logger"
+	"go.uber.org/zap"
 )
 
-var Source *sql.DB
-
-func connect() (*sql.DB, error) {
+func connect(logger *zap.Logger) (*sql.DB, error) {
 	db, err := sql.Open("pgx", config.Cfg.DatabaseURI)
 	if err != nil {
-		logger.Log.Fatal(err.Error())
+		logger.Fatal(err.Error())
 		return nil, err
 	}
 	if err := db.Ping(); err != nil {
-		logger.Log.Error(err.Error())
+		logger.Error(err.Error())
 		return nil, err
 	}
 	return db, nil
 }
 
-func Init() {
-	res, err := connect()
+func NewDB(logger *zap.Logger) *sql.DB {
+	res, err := connect(logger)
 	if err != nil {
-		logger.Log.Fatal(err.Error())
+		logger.Fatal(err.Error())
 	}
-	Migrate(res)
-	Source = res
+	if err := goose.SetDialect("postgres"); err != nil {
+		logger.Fatal(err.Error())
+	}
+	if err := goose.Up(res, "internal/migrations"); err != nil {
+		logger.Fatal(err.Error())
+	}
+	return res
 }

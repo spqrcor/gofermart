@@ -6,29 +6,45 @@ import (
 	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/handlers"
 	"github.com/spqrcor/gofermart/internal/services"
-	"log"
+	"go.uber.org/zap"
 	"net/http"
 )
 
-var publicRoutes = []string{"/api/user/register", "/api/user/login"}
+type HTTPServer struct {
+	userService       services.UserRepository
+	orderService      services.OrderRepository
+	withdrawalService services.WithdrawalRepository
+	logger            *zap.Logger
+}
 
-func Start(userService services.UserRepository, orderService services.OrderRepository, withdrawalService services.WithdrawalRepository) {
+func NewServer(userService services.UserRepository, orderService services.OrderRepository, withdrawalService services.WithdrawalRepository, logger *zap.Logger) *HTTPServer {
+	return &HTTPServer{
+		userService: userService, orderService: orderService, withdrawalService: withdrawalService, logger: logger,
+	}
+}
+
+func (s *HTTPServer) Start() error {
 	r := chi.NewRouter()
-	r.Use(authenticateMiddleware)
-	r.Use(loggerMiddleware)
+	r.Use(loggerMiddleware(s.logger))
 	r.Use(middleware.Compress(5, "application/json", "text/html"))
-	r.Use(getBodyMiddleware)
+	r.Use(getBodyMiddleware(s.logger))
 
-	r.Post("/api/user/register", handlers.RegisterHandler(userService))
-	r.Post("/api/user/login", handlers.LoginHandler(userService))
-	r.Post("/api/user/orders", handlers.AddOrdersHandler(orderService))
-	r.Get("/api/user/orders", handlers.GetOrdersHandler(orderService))
-	r.Get("/api/user/balance", handlers.GetBalanceHandler(withdrawalService))
-	r.Post("/api/user/balance/withdraw", handlers.AddWithdrawalHandler(withdrawalService))
-	r.Get("/api/user/withdrawals", handlers.GetWithdrawalsHandler(withdrawalService))
+	r.Group(func(r chi.Router) {
+		r.Post("/api/user/register", handlers.RegisterHandler(s.userService))
+		r.Post("/api/user/login", handlers.LoginHandler(s.userService))
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(authenticateMiddleware(s.logger))
+		r.Post("/api/user/orders", handlers.AddOrdersHandler(s.orderService))
+		r.Get("/api/user/orders", handlers.GetOrdersHandler(s.orderService))
+		r.Get("/api/user/balance", handlers.GetBalanceHandler(s.withdrawalService))
+		r.Post("/api/user/balance/withdraw", handlers.AddWithdrawalHandler(s.withdrawalService))
+		r.Get("/api/user/withdrawals", handlers.GetWithdrawalsHandler(s.withdrawalService))
+	})
 
 	r.HandleFunc(`/*`, func(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusBadRequest)
 	})
-	log.Fatal(http.ListenAndServe(config.Cfg.RunAddr, r))
+	return http.ListenAndServe(config.Cfg.RunAddr, r)
 }

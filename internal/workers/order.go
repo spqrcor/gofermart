@@ -3,26 +3,26 @@ package workers
 import (
 	"context"
 	"github.com/spqrcor/gofermart/internal/client"
-	"github.com/spqrcor/gofermart/internal/logger"
+	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/services"
+	"go.uber.org/zap"
 	"time"
 )
-
-const workerCount = 3
 
 type OrderWorker struct {
 	ctx          context.Context
 	orderService services.OrderRepository
 	orderQueue   chan string
+	logger       *zap.Logger
 }
 
-func NewOrderWorker(ctx context.Context, orderService services.OrderRepository, orderQueue chan string) *OrderWorker {
-	return &OrderWorker{ctx: ctx, orderService: orderService, orderQueue: orderQueue}
+func NewOrderWorker(ctx context.Context, orderService services.OrderRepository, orderQueue chan string, logger *zap.Logger) *OrderWorker {
+	return &OrderWorker{ctx: ctx, orderService: orderService, orderQueue: orderQueue, logger: logger}
 }
 
 func (w *OrderWorker) Run() {
 	go w.fillQueue()
-	for i := 1; i <= workerCount; i++ {
+	for i := 1; i <= config.Cfg.WorkerCount; i++ {
 		go w.worker()
 	}
 }
@@ -41,17 +41,16 @@ func (w *OrderWorker) worker() {
 			return
 		case orderNum, ok := <-w.orderQueue:
 			if !ok {
-				logger.Log.Info("order queue is closed")
+				w.logger.Info("order queue is closed")
 				return
 			}
 
 			result, sleepSeconds, err := client.CheckOrder(orderNum)
 			if err != nil {
-				logger.Log.Info(err.Error())
+				w.logger.Info(err.Error())
 			} else {
-				err = w.orderService.ChangeStatus(w.ctx, result)
-				if err != nil {
-					logger.Log.Info(err.Error())
+				if err := w.orderService.ChangeStatus(w.ctx, result); err != nil {
+					w.logger.Info(err.Error())
 				}
 			}
 

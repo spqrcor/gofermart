@@ -13,18 +13,21 @@ import (
 func main() {
 	mainCtx := context.Background()
 	config.Init()
-	logger.Init()
-	db.Init()
+	loggerRes := logger.NewLogger()
+	dbRes := db.NewDB(loggerRes)
 
 	orderQueue := make(chan string)
 	defer close(orderQueue)
 
-	userService := services.NewUserService()
-	orderService := services.NewOrderService(orderQueue)
-	withdrawalService := services.NewWithdrawalService()
+	userService := services.NewUserService(dbRes)
+	orderService := services.NewOrderService(orderQueue, dbRes, loggerRes)
+	withdrawalService := services.NewWithdrawalService(dbRes, loggerRes)
 
-	orderWorker := workers.NewOrderWorker(mainCtx, orderService, orderQueue)
+	orderWorker := workers.NewOrderWorker(mainCtx, orderService, orderQueue, loggerRes)
 	orderWorker.Run()
 
-	server.Start(userService, orderService, withdrawalService)
+	appServer := server.NewServer(userService, orderService, withdrawalService, loggerRes)
+	if err := appServer.Start(); err != nil {
+		loggerRes.Fatal(err.Error())
+	}
 }

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spqrcor/gofermart/internal/authenticate"
-	"github.com/spqrcor/gofermart/internal/db"
-	"github.com/spqrcor/gofermart/internal/logger"
+	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/utils"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -38,10 +38,13 @@ type WithdrawalRepository interface {
 	GetBalance(ctx context.Context) (BalanceInfo, error)
 }
 
-type WithdrawalService struct{}
+type WithdrawalService struct {
+	db     *sql.DB
+	logger *zap.Logger
+}
 
-func NewWithdrawalService() *WithdrawalService {
-	return &WithdrawalService{}
+func NewWithdrawalService(db *sql.DB, logger *zap.Logger) *WithdrawalService {
+	return &WithdrawalService{db: db, logger: logger}
 }
 
 func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) error {
@@ -50,10 +53,10 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 	}
 	userID := ctx.Value(authenticate.ContextUserID)
 
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
 
-	tx, err := db.Source.BeginTx(childCtx, nil)
+	tx, err := w.db.BeginTx(childCtx, nil)
 	if err != nil {
 		return err
 	}
@@ -76,28 +79,25 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 		}
 		return err
 	}
-	if err = tx.Commit(); err != nil {
-		return err
-	}
-	return nil
+	return tx.Commit()
 }
 
 func (w *WithdrawalService) GetAll(ctx context.Context) ([]Withdrawal, error) {
 	var withdrawals []Withdrawal
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
 
-	rows, err := db.Source.QueryContext(childCtx, "SELECT number, sum, created_at FROM withdrawals WHERE user_id = $1 ORDER BY created_at DESC",
+	rows, err := w.db.QueryContext(childCtx, "SELECT number, sum, created_at FROM withdrawals WHERE user_id = $1 ORDER BY created_at DESC",
 		ctx.Value(authenticate.ContextUserID))
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err := rows.Close(); err != nil {
-			logger.Log.Error(err.Error())
+			w.logger.Error(err.Error())
 		}
 		if err := rows.Err(); err != nil {
-			logger.Log.Error(err.Error())
+			w.logger.Error(err.Error())
 		}
 	}()
 
@@ -116,10 +116,10 @@ func (w *WithdrawalService) GetAll(ctx context.Context) ([]Withdrawal, error) {
 
 func (w *WithdrawalService) GetBalance(ctx context.Context) (BalanceInfo, error) {
 	balanceInfo := BalanceInfo{}
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
 	defer cancel()
 
-	row := db.Source.QueryRowContext(childCtx, "SELECT balance, (SELECT COALESCE(SUM(w.sum), 0) FROM withdrawals w WHERE w.user_id = u.id) FROM users u WHERE id = $1",
+	row := w.db.QueryRowContext(childCtx, "SELECT balance, (SELECT COALESCE(SUM(w.sum), 0) FROM withdrawals w WHERE w.user_id = u.id) FROM users u WHERE id = $1",
 		ctx.Value(authenticate.ContextUserID))
 	if err := row.Scan(&balanceInfo.Current, &balanceInfo.Withdrawn); err != nil {
 		return balanceInfo, errors.New("user not found")
