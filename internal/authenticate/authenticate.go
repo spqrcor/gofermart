@@ -17,37 +17,43 @@ type ContextKey string
 
 var ContextUserID ContextKey = "UserID"
 
-const tokenExp = time.Hour * 3
-const secretKey = "KLJ-fo3Fksd3fl!="
+type Authenticate struct {
+	secretKey string
+	tokenExp  time.Duration
+}
 
-func CreateCookie(UserID uuid.UUID) (http.Cookie, error) {
-	token, err := createToken(UserID)
+func NewAuthenticateService(secretKey string, tokenExp time.Duration) *Authenticate {
+	return &Authenticate{secretKey: secretKey, tokenExp: tokenExp}
+}
+
+func (a *Authenticate) createCookie(UserID uuid.UUID) (http.Cookie, error) {
+	token, err := a.createToken(UserID)
 	if err != nil {
 		return http.Cookie{}, err
 	}
-	return http.Cookie{Name: "Authorization", Value: token, Expires: time.Now().Add(tokenExp), HttpOnly: true, Path: "/"}, nil
+	return http.Cookie{Name: "Authorization", Value: token, Expires: time.Now().Add(a.tokenExp), HttpOnly: true, Path: "/"}, nil
 }
 
-func createToken(UserID uuid.UUID) (string, error) {
+func (a *Authenticate) createToken(UserID uuid.UUID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(a.tokenExp)),
 		},
 		UserID: UserID,
 	})
 
-	tokenString, err := token.SignedString([]byte(secretKey))
+	tokenString, err := token.SignedString([]byte(a.secretKey))
 	if err != nil {
 		return "", err
 	}
 	return "Bearer " + tokenString, nil
 }
 
-func GetUserIDFromCookie(tokenString string) (uuid.UUID, error) {
+func (a *Authenticate) GetUserIDFromCookie(tokenString string) (uuid.UUID, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(strings.TrimPrefix(tokenString, "Bearer "), claims,
 		func(t *jwt.Token) (interface{}, error) {
-			return []byte(secretKey), nil
+			return []byte(a.secretKey), nil
 		})
 	if err != nil {
 		return uuid.Nil, err
@@ -59,8 +65,8 @@ func GetUserIDFromCookie(tokenString string) (uuid.UUID, error) {
 	return claims.UserID, nil
 }
 
-func SetCookie(rw http.ResponseWriter, UserID uuid.UUID) {
-	cookie, err := CreateCookie(UserID)
+func (a *Authenticate) SetCookie(rw http.ResponseWriter, UserID uuid.UUID) {
+	cookie, err := a.createCookie(UserID)
 	if err == nil {
 		http.SetCookie(rw, &cookie)
 	}

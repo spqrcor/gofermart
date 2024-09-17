@@ -15,6 +15,8 @@ type Config struct {
 	DatabaseURI          string        `env:"DATABASE_URI"`
 	QueryTimeOut         time.Duration `env:"QUERY_TIME_OUT"`
 	WorkerCount          int           `env:"WORKER_COUNT"`
+	SecretKey            string        `env:"SECRET_KEY"`
+	TokenExp             time.Duration `env:"TOKEN_EXP"`
 }
 
 func NewConfig() Config {
@@ -25,6 +27,8 @@ func NewConfig() Config {
 		DatabaseURI:          "",
 		QueryTimeOut:         3,
 		WorkerCount:          3,
+		SecretKey:            "KLJ-fo3Fksd3fl!=",
+		TokenExp:             time.Hour * 3,
 	}
 
 	flag.StringVar(&cfg.RunAddr, "a", cfg.RunAddr, "address and port to run server")

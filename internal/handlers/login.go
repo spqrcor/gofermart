@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func LoginHandler(u services.UserRepository) http.HandlerFunc {
+func LoginHandler(u *services.UserService, a *authenticate.Authenticate) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var input services.InputDataUser
 		if err := utils.FromPostJSON(req, &input); err != nil {
@@ -25,7 +25,7 @@ func LoginHandler(u services.UserRepository) http.HandlerFunc {
 			return
 		}
 
-		authenticate.SetCookie(res, UserID)
+		a.SetCookie(res, UserID)
 		res.WriteHeader(http.StatusOK)
 	}
 }

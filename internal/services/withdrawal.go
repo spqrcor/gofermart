@@ -31,12 +31,6 @@ type BalanceInfo struct {
 var ErrBalance = fmt.Errorf("balance error")
 var ErrWithdrawNotFound = fmt.Errorf("withdraw not found")
 
-type WithdrawalRepository interface {
-	Add(ctx context.Context, input InputWithdrawal) error
-	GetAll(ctx context.Context) ([]Withdrawal, error)
-	GetBalance(ctx context.Context) (BalanceInfo, error)
-}
-
 type WithdrawalService struct {
 	db           *sql.DB
 	logger       *zap.Logger

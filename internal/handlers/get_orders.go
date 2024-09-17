@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func GetOrdersHandler(o services.OrderRepository) http.HandlerFunc {
+func GetOrdersHandler(o *services.OrderService) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		orders, err := o.GetAll(req.Context())
 		if errors.Is(err, services.ErrOrdersNotFound) {

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func authenticateMiddleware(logger *zap.Logger) func(next http.Handler) http.Handler {
+func authenticateMiddleware(logger *zap.Logger, auth *authenticate.Authenticate) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie("Authorization")
@@ -15,7 +15,7 @@ func authenticateMiddleware(logger *zap.Logger) func(next http.Handler) http.Han
 				http.Error(rw, err.Error(), http.StatusUnauthorized)
 				return
 			} else {
-				UserID, err := authenticate.GetUserIDFromCookie(cookie.Value)
+				UserID, err := auth.GetUserIDFromCookie(cookie.Value)
 				if err != nil {
 					logger.Error(err.Error())
 					http.Error(rw, err.Error(), http.StatusInternalServerError)

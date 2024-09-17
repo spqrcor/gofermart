@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/spqrcor/gofermart/internal/authenticate"
 	"github.com/spqrcor/gofermart/internal/handlers"
 	"github.com/spqrcor/gofermart/internal/services"
 	"go.uber.org/zap"
@@ -10,16 +11,17 @@ import (
 )
 
 type HTTPServer struct {
-	userService       services.UserRepository
-	orderService      services.OrderRepository
-	withdrawalService services.WithdrawalRepository
+	userService       *services.UserService
+	orderService      *services.OrderService
+	withdrawalService *services.WithdrawalService
 	logger            *zap.Logger
 	runAddress        string
+	authService       *authenticate.Authenticate
 }
 
-func NewServer(userService services.UserRepository, orderService services.OrderRepository, withdrawalService services.WithdrawalRepository, logger *zap.Logger, runAddress string) *HTTPServer {
+func NewServer(userService *services.UserService, orderService *services.OrderService, withdrawalService *services.WithdrawalService, logger *zap.Logger, runAddress string, authService *authenticate.Authenticate) *HTTPServer {
 	return &HTTPServer{
-		userService: userService, orderService: orderService, withdrawalService: withdrawalService, logger: logger, runAddress: runAddress,
+		userService: userService, orderService: orderService, withdrawalService: withdrawalService, logger: logger, runAddress: runAddress, authService: authService,
 	}
 }
 
@@ -30,12 +32,12 @@ func (s *HTTPServer) Start() error {
 	r.Use(getBodyMiddleware(s.logger))
 
 	r.Group(func(r chi.Router) {
-		r.Post("/api/user/register", handlers.RegisterHandler(s.userService))
-		r.Post("/api/user/login", handlers.LoginHandler(s.userService))
+		r.Post("/api/user/register", handlers.RegisterHandler(s.userService, s.authService))
+		r.Post("/api/user/login", handlers.LoginHandler(s.userService, s.authService))
 	})
 
 	r.Group(func(r chi.Router) {
-		r.Use(authenticateMiddleware(s.logger))
+		r.Use(authenticateMiddleware(s.logger, s.authService))
 		r.Post("/api/user/orders", handlers.AddOrdersHandler(s.orderService))
 		r.Get("/api/user/orders", handlers.GetOrdersHandler(s.orderService))
 		r.Get("/api/user/balance", handlers.GetBalanceHandler(s.withdrawalService))

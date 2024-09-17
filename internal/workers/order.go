@@ -10,14 +10,14 @@ import (
 
 type OrderWorker struct {
 	ctx          context.Context
-	orderService services.OrderRepository
+	orderService *services.OrderService
 	orderQueue   chan string
 	logger       *zap.Logger
 	workerCount  int
 	orderClient  *client.OrderClient
 }
 
-func NewOrderWorker(ctx context.Context, orderService services.OrderRepository, orderQueue chan string, logger *zap.Logger, workerCount int, orderClient *client.OrderClient) *OrderWorker {
+func NewOrderWorker(ctx context.Context, orderService *services.OrderService, orderQueue chan string, logger *zap.Logger, workerCount int, orderClient *client.OrderClient) *OrderWorker {
 	return &OrderWorker{ctx: ctx, orderService: orderService, orderQueue: orderQueue, logger: logger, workerCount: workerCount, orderClient: orderClient}
 }
 

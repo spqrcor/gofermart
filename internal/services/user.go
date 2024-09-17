@@ -25,11 +25,6 @@ type InputDataUser struct {
 	Password string `json:"password"`
 }
 
-type UserRepository interface {
-	Add(ctx context.Context, input InputDataUser) (uuid.UUID, error)
-	Login(ctx context.Context, input InputDataUser) (uuid.UUID, error)
-}
-
 type UserService struct {
 	db           *sql.DB
 	queryTimeOut time.Duration

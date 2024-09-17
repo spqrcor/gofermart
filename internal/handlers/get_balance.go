@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func GetBalanceHandler(w services.WithdrawalRepository) http.HandlerFunc {
+func GetBalanceHandler(w *services.WithdrawalService) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		balance, err := w.GetBalance(req.Context())
 		if err != nil {

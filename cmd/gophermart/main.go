@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/spqrcor/gofermart/internal/authenticate"
 	"github.com/spqrcor/gofermart/internal/client"
 	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/db"
@@ -28,6 +29,7 @@ func main() {
 	orderQueue := make(chan string)
 	defer close(orderQueue)
 
+	authService := authenticate.NewAuthenticateService(conf.SecretKey, conf.TokenExp)
 	userService := services.NewUserService(dbRes, conf.QueryTimeOut)
 	orderService := services.NewOrderService(orderQueue, dbRes, loggerRes, conf.QueryTimeOut)
 	withdrawalService := services.NewWithdrawalService(dbRes, loggerRes, conf.QueryTimeOut)
@@ -36,7 +38,7 @@ func main() {
 	orderWorker := workers.NewOrderWorker(mainCtx, orderService, orderQueue, loggerRes, conf.WorkerCount, orderClient)
 	orderWorker.Run()
 
-	appServer := server.NewServer(userService, orderService, withdrawalService, loggerRes, conf.RunAddr)
+	appServer := server.NewServer(userService, orderService, withdrawalService, loggerRes, conf.RunAddr, authService)
 	if err := appServer.Start(); err != nil {
 		loggerRes.Error(err.Error())
 	}

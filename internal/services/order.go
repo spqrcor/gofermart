@@ -29,13 +29,6 @@ var ErrOrderUserExists = fmt.Errorf("order user exists")
 var ErrOrderInvalidFormat = fmt.Errorf("order invalid format")
 var ErrOrdersNotFound = fmt.Errorf("orders not found")
 
-type OrderRepository interface {
-	Add(ctx context.Context, orderNum string) error
-	GetAll(ctx context.Context) ([]Order, error)
-	GetUnComplete(ctx context.Context) ([]string, error)
-	ChangeStatus(ctx context.Context, data OrderFromAccrual) error
-}
-
 type OrderService struct {
 	orderQueue   chan string
 	db           *sql.DB
@@ -56,8 +49,8 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
-	err := o.db.QueryRowContext(childCtx, "INSERT INTO orders (id, user_id, number) VALUES ($1, $2, $3)  "+
-		"ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id", orderID, ctx.Value(authenticate.ContextUserID), orderNum).Scan(&baseOrderID, &baseUserID)
+	err := o.db.QueryRowContext(childCtx, `INSERT INTO orders (id, user_id, number) VALUES ($1, $2, $3)  
+       ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id`, orderID, ctx.Value(authenticate.ContextUserID), orderNum).Scan(&baseOrderID, &baseUserID)
 	if err != nil {
 		return err
 	} else if ctx.Value(authenticate.ContextUserID) != uuid.MustParse(baseUserID) {

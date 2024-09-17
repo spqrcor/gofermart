@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func GetWithdrawalsHandler(w services.WithdrawalRepository) http.HandlerFunc {
+func GetWithdrawalsHandler(w *services.WithdrawalService) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		withdrawals, err := w.GetAll(req.Context())
 		if errors.Is(err, services.ErrWithdrawNotFound) {
