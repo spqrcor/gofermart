@@ -4,12 +4,11 @@ import (
 	"database/sql"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/spqrcor/gofermart/internal/config"
 	"go.uber.org/zap"
 )
 
-func connect(logger *zap.Logger) (*sql.DB, error) {
-	db, err := sql.Open("pgx", config.Cfg.DatabaseURI)
+func connect(logger *zap.Logger, databaseURI string) (*sql.DB, error) {
+	db, err := sql.Open("pgx", databaseURI)
 	if err != nil {
 		logger.Fatal(err.Error())
 		return nil, err
@@ -21,16 +20,16 @@ func connect(logger *zap.Logger) (*sql.DB, error) {
 	return db, nil
 }
 
-func NewDB(logger *zap.Logger) *sql.DB {
-	res, err := connect(logger)
+func NewDB(logger *zap.Logger, databaseURI string) (*sql.DB, error) {
+	res, err := connect(logger, databaseURI)
 	if err != nil {
-		logger.Fatal(err.Error())
+		return nil, err
 	}
 	if err := goose.SetDialect("postgres"); err != nil {
-		logger.Fatal(err.Error())
+		return nil, err
 	}
 	if err := goose.Up(res, "internal/migrations"); err != nil {
-		logger.Fatal(err.Error())
+		return nil, err
 	}
-	return res
+	return res, nil
 }

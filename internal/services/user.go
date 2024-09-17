@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/spqrcor/gofermart/internal/config"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 )
@@ -14,6 +13,7 @@ import (
 var ErrLogin = fmt.Errorf("login error")
 var ErrLoginExists = fmt.Errorf("login exists")
 var ErrValidation = fmt.Errorf("validation error")
+var ErrGeneratePassword = fmt.Errorf("generate password error")
 
 const minPasswordLength = 6
 const maxPasswordLength = 72
@@ -31,11 +31,12 @@ type UserRepository interface {
 }
 
 type UserService struct {
-	db *sql.DB
+	db           *sql.DB
+	queryTimeOut time.Duration
 }
 
-func NewUserService(db *sql.DB) *UserService {
-	return &UserService{db: db}
+func NewUserService(db *sql.DB, queryTimeOut time.Duration) *UserService {
+	return &UserService{db: db, queryTimeOut: queryTimeOut}
 }
 
 func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, error) {
@@ -44,12 +45,12 @@ func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, 
 	}
 	bytes, err := bcrypt.GenerateFromPassword([]byte(input.Password), 14)
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, errors.Join(ErrGeneratePassword, err)
 	}
 
 	baseUserID := ""
 	userID := uuid.NewString()
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*u.queryTimeOut)
 	defer cancel()
 	err = u.db.QueryRowContext(childCtx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3) ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id",
 		userID, input.Login, string(bytes)).Scan(&baseUserID)
@@ -62,7 +63,7 @@ func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, 
 }
 
 func (u *UserService) Login(ctx context.Context, input InputDataUser) (uuid.UUID, error) {
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*u.queryTimeOut)
 	defer cancel()
 	row := u.db.QueryRowContext(childCtx, "SELECT id, password FROM users WHERE login = $1", input.Login)
 

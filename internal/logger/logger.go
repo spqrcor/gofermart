@@ -1,19 +1,16 @@
 package logger
 
 import (
-	"github.com/spqrcor/gofermart/internal/config"
 	"go.uber.org/zap"
-	"log"
+	"go.uber.org/zap/zapcore"
 )
 
-var Log *zap.Logger = zap.NewNop()
-
-func NewLogger() *zap.Logger {
+func NewLogger(logLevel zapcore.Level) (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
-	cfg.Level = zap.NewAtomicLevelAt(config.Cfg.LogLevel)
+	cfg.Level = zap.NewAtomicLevelAt(logLevel)
 	zl, err := cfg.Build()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return zl
+	return zl, nil
 }

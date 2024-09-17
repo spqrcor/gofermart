@@ -3,7 +3,6 @@ package workers
 import (
 	"context"
 	"github.com/spqrcor/gofermart/internal/client"
-	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/services"
 	"go.uber.org/zap"
 	"time"
@@ -14,15 +13,17 @@ type OrderWorker struct {
 	orderService services.OrderRepository
 	orderQueue   chan string
 	logger       *zap.Logger
+	workerCount  int
+	orderClient  *client.OrderClient
 }
 
-func NewOrderWorker(ctx context.Context, orderService services.OrderRepository, orderQueue chan string, logger *zap.Logger) *OrderWorker {
-	return &OrderWorker{ctx: ctx, orderService: orderService, orderQueue: orderQueue, logger: logger}
+func NewOrderWorker(ctx context.Context, orderService services.OrderRepository, orderQueue chan string, logger *zap.Logger, workerCount int, orderClient *client.OrderClient) *OrderWorker {
+	return &OrderWorker{ctx: ctx, orderService: orderService, orderQueue: orderQueue, logger: logger, workerCount: workerCount, orderClient: orderClient}
 }
 
 func (w *OrderWorker) Run() {
 	go w.fillQueue()
-	for i := 1; i <= config.Cfg.WorkerCount; i++ {
+	for i := 1; i <= w.workerCount; i++ {
 		go w.worker()
 	}
 }
@@ -45,7 +46,7 @@ func (w *OrderWorker) worker() {
 				return
 			}
 
-			result, sleepSeconds, err := client.CheckOrder(orderNum)
+			result, sleepSeconds, err := w.orderClient.CheckOrder(orderNum)
 			if err != nil {
 				w.logger.Info(err.Error())
 			} else {

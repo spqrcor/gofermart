@@ -3,16 +3,25 @@ package client
 import (
 	"encoding/json"
 	"errors"
-	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/services"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"strconv"
 )
 
-func CheckOrder(OrderNum string) (services.OrderFromAccrual, int, error) {
+type OrderClient struct {
+	logger               *zap.Logger
+	accrualSystemAddress string
+}
+
+func NewOrderClient(logger *zap.Logger, accrualSystemAddress string) *OrderClient {
+	return &OrderClient{logger: logger, accrualSystemAddress: accrualSystemAddress}
+}
+
+func (c OrderClient) CheckOrder(OrderNum string) (services.OrderFromAccrual, int, error) {
 	data := services.OrderFromAccrual{}
-	resp, err := http.Get(config.Cfg.AccrualSystemAddress + "/api/orders/" + OrderNum)
+	resp, err := http.Get(c.accrualSystemAddress + "/api/orders/" + OrderNum)
 	if err != nil {
 		return data, 0, err
 	}

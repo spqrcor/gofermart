@@ -17,19 +17,19 @@ type Config struct {
 	WorkerCount          int           `env:"WORKER_COUNT"`
 }
 
-var Cfg = Config{
-	RunAddr:              "localhost:8080",
-	LogLevel:             zap.InfoLevel,
-	AccrualSystemAddress: "",
-	DatabaseURI:          "postgres://postgres:Sp123456@localhost:5432/gofermart?sslmode=disable",
-	QueryTimeOut:         3,
-	WorkerCount:          3,
-}
+func NewConfig() Config {
+	var cfg = Config{
+		RunAddr:              "localhost:8080",
+		LogLevel:             zap.InfoLevel,
+		AccrualSystemAddress: "",
+		DatabaseURI:          "",
+		QueryTimeOut:         3,
+		WorkerCount:          3,
+	}
 
-func Init() {
-	flag.StringVar(&Cfg.RunAddr, "a", Cfg.RunAddr, "address and port to run server")
-	flag.StringVar(&Cfg.AccrualSystemAddress, "r", Cfg.AccrualSystemAddress, "accrual system address")
-	flag.StringVar(&Cfg.DatabaseURI, "d", Cfg.DatabaseURI, "database uri")
+	flag.StringVar(&cfg.RunAddr, "a", cfg.RunAddr, "address and port to run server")
+	flag.StringVar(&cfg.AccrualSystemAddress, "r", cfg.AccrualSystemAddress, "accrual system address")
+	flag.StringVar(&cfg.DatabaseURI, "d", cfg.DatabaseURI, "database uri")
 	flag.Parse()
 
 	serverAddressEnv, findAddress := os.LookupEnv("RUN_ADDRESS")
@@ -37,12 +37,13 @@ func Init() {
 	serverAccrualSystemAddress, findAccrualSystemAddress := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
 
 	if findAddress {
-		Cfg.RunAddr = serverAddressEnv
+		cfg.RunAddr = serverAddressEnv
 	}
 	if findDatabaseURI {
-		Cfg.DatabaseURI = serverDatabaseURI
+		cfg.DatabaseURI = serverDatabaseURI
 	}
 	if findAccrualSystemAddress {
-		Cfg.AccrualSystemAddress = serverAccrualSystemAddress
+		cfg.AccrualSystemAddress = serverAccrualSystemAddress
 	}
+	return cfg
 }

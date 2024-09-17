@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/spqrcor/gofermart/internal/authenticate"
-	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/utils"
 	"go.uber.org/zap"
 	"time"
@@ -38,13 +37,14 @@ type OrderRepository interface {
 }
 
 type OrderService struct {
-	orderQueue chan string
-	db         *sql.DB
-	logger     *zap.Logger
+	orderQueue   chan string
+	db           *sql.DB
+	logger       *zap.Logger
+	queryTimeOut time.Duration
 }
 
-func NewOrderService(orderQueue chan string, db *sql.DB, logger *zap.Logger) *OrderService {
-	return &OrderService{orderQueue: orderQueue, db: db, logger: logger}
+func NewOrderService(orderQueue chan string, db *sql.DB, logger *zap.Logger, queryTimeOut time.Duration) *OrderService {
+	return &OrderService{orderQueue: orderQueue, db: db, logger: logger, queryTimeOut: queryTimeOut}
 }
 
 func (o *OrderService) Add(ctx context.Context, orderNum string) error {
@@ -54,7 +54,7 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 	var baseUserID, baseOrderID string
 	orderID := uuid.NewString()
 
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
 	err := o.db.QueryRowContext(childCtx, "INSERT INTO orders (id, user_id, number) VALUES ($1, $2, $3)  "+
 		"ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id", orderID, ctx.Value(authenticate.ContextUserID), orderNum).Scan(&baseOrderID, &baseUserID)
@@ -71,7 +71,7 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 
 func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 	var orders []Order
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
 
 	rows, err := o.db.QueryContext(childCtx, "SELECT number, status, accrual, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC", ctx.Value(authenticate.ContextUserID))
@@ -106,7 +106,7 @@ func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 func (o *OrderService) GetUnComplete(ctx context.Context) ([]string, error) {
 	var orders []string
 
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
 
 	rows, err := o.db.QueryContext(childCtx, "SELECT number FROM orders WHERE status IN ('NEW', 'PROCESSING') ORDER BY created_at")
@@ -133,7 +133,7 @@ func (o *OrderService) GetUnComplete(ctx context.Context) ([]string, error) {
 }
 
 func (o *OrderService) ChangeStatus(ctx context.Context, data OrderFromAccrual) error {
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
 
 	tx, err := o.db.BeginTx(childCtx, nil)

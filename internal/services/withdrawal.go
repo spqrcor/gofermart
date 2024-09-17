@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/spqrcor/gofermart/internal/authenticate"
-	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/utils"
 	"go.uber.org/zap"
 	"time"
@@ -39,12 +38,13 @@ type WithdrawalRepository interface {
 }
 
 type WithdrawalService struct {
-	db     *sql.DB
-	logger *zap.Logger
+	db           *sql.DB
+	logger       *zap.Logger
+	queryTimeOut time.Duration
 }
 
-func NewWithdrawalService(db *sql.DB, logger *zap.Logger) *WithdrawalService {
-	return &WithdrawalService{db: db, logger: logger}
+func NewWithdrawalService(db *sql.DB, logger *zap.Logger, queryTimeOut time.Duration) *WithdrawalService {
+	return &WithdrawalService{db: db, logger: logger, queryTimeOut: queryTimeOut}
 }
 
 func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) error {
@@ -53,7 +53,7 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 	}
 	userID := ctx.Value(authenticate.ContextUserID)
 
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*w.queryTimeOut)
 	defer cancel()
 
 	tx, err := w.db.BeginTx(childCtx, nil)
@@ -84,7 +84,7 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 
 func (w *WithdrawalService) GetAll(ctx context.Context) ([]Withdrawal, error) {
 	var withdrawals []Withdrawal
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*w.queryTimeOut)
 	defer cancel()
 
 	rows, err := w.db.QueryContext(childCtx, "SELECT number, sum, created_at FROM withdrawals WHERE user_id = $1 ORDER BY created_at DESC",
@@ -116,7 +116,7 @@ func (w *WithdrawalService) GetAll(ctx context.Context) ([]Withdrawal, error) {
 
 func (w *WithdrawalService) GetBalance(ctx context.Context) (BalanceInfo, error) {
 	balanceInfo := BalanceInfo{}
-	childCtx, cancel := context.WithTimeout(ctx, time.Second*config.Cfg.QueryTimeOut)
+	childCtx, cancel := context.WithTimeout(ctx, time.Second*w.queryTimeOut)
 	defer cancel()
 
 	row := w.db.QueryRowContext(childCtx, "SELECT balance, (SELECT COALESCE(SUM(w.sum), 0) FROM withdrawals w WHERE w.user_id = u.id) FROM users u WHERE id = $1",

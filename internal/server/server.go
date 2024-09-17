@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/handlers"
 	"github.com/spqrcor/gofermart/internal/services"
 	"go.uber.org/zap"
@@ -15,11 +14,12 @@ type HTTPServer struct {
 	orderService      services.OrderRepository
 	withdrawalService services.WithdrawalRepository
 	logger            *zap.Logger
+	runAddress        string
 }
 
-func NewServer(userService services.UserRepository, orderService services.OrderRepository, withdrawalService services.WithdrawalRepository, logger *zap.Logger) *HTTPServer {
+func NewServer(userService services.UserRepository, orderService services.OrderRepository, withdrawalService services.WithdrawalRepository, logger *zap.Logger, runAddress string) *HTTPServer {
 	return &HTTPServer{
-		userService: userService, orderService: orderService, withdrawalService: withdrawalService, logger: logger,
+		userService: userService, orderService: orderService, withdrawalService: withdrawalService, logger: logger, runAddress: runAddress,
 	}
 }
 
@@ -46,5 +46,5 @@ func (s *HTTPServer) Start() error {
 	r.HandleFunc(`/*`, func(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusBadRequest)
 	})
-	return http.ListenAndServe(config.Cfg.RunAddr, r)
+	return http.ListenAndServe(s.runAddress, r)
 }
