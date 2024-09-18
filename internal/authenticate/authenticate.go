@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"time"
@@ -18,12 +19,13 @@ type ContextKey string
 var ContextUserID ContextKey = "UserID"
 
 type Authenticate struct {
+	logger    *zap.Logger
 	secretKey string
 	tokenExp  time.Duration
 }
 
-func NewAuthenticateService(secretKey string, tokenExp time.Duration) *Authenticate {
-	return &Authenticate{secretKey: secretKey, tokenExp: tokenExp}
+func NewAuthenticateService(logger *zap.Logger, secretKey string, tokenExp time.Duration) *Authenticate {
+	return &Authenticate{logger: logger, secretKey: secretKey, tokenExp: tokenExp}
 }
 
 func (a *Authenticate) createCookie(UserID uuid.UUID) (http.Cookie, error) {
@@ -67,7 +69,9 @@ func (a *Authenticate) GetUserIDFromCookie(tokenString string) (uuid.UUID, error
 
 func (a *Authenticate) SetCookie(rw http.ResponseWriter, UserID uuid.UUID) {
 	cookie, err := a.createCookie(UserID)
-	if err == nil {
+	if err != nil {
+		a.logger.Error(err.Error())
+	} else {
 		http.SetCookie(rw, &cookie)
 	}
 }

@@ -29,7 +29,7 @@ func main() {
 	orderQueue := make(chan string)
 	defer close(orderQueue)
 
-	authService := authenticate.NewAuthenticateService(conf.SecretKey, conf.TokenExp)
+	authService := authenticate.NewAuthenticateService(loggerRes, conf.SecretKey, conf.TokenExp)
 	userService := services.NewUserService(dbRes, conf.QueryTimeOut)
 	orderService := services.NewOrderService(orderQueue, dbRes, loggerRes, conf.QueryTimeOut)
 	withdrawalService := services.NewWithdrawalService(dbRes, loggerRes, conf.QueryTimeOut)
