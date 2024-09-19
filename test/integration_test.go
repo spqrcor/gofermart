@@ -144,7 +144,7 @@ func TestIntegration(t *testing.T) {
 			Status(http.StatusOK).
 			JSON().Object().
 			ContainsKey("current").HasValue("current", 0).
-			ContainsKey("current").HasValue("current", 0)
+			ContainsKey("withdrawn").HasValue("withdrawn", 0)
 	})
 
 	t.Run("get withdrawals no content", func(t *testing.T) {
