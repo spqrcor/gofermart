@@ -25,6 +25,9 @@ func main() {
 	if err != nil {
 		loggerRes.Fatal(err.Error())
 	}
+	if err := db.Migrate(dbRes); err != nil {
+		loggerRes.Fatal(err.Error())
+	}
 
 	orderQueue := make(chan string)
 	defer close(orderQueue)

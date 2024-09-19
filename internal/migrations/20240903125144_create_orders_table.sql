@@ -10,7 +10,11 @@ CREATE TABLE public.orders (
                               accrual numeric(12, 2),
                               created_at timestamptz DEFAULT now() NOT NULL,
                               updated_at timestamptz,
-                              CONSTRAINT orders_pkey PRIMARY KEY (id)
+                              CONSTRAINT orders_pkey PRIMARY KEY (id),
+                              CONSTRAINT orders_user_id_fkey
+                                  FOREIGN KEY (user_id)
+                                  REFERENCES public.users(id)
+                                  ON DELETE CASCADE
 );
 CREATE UNIQUE INDEX orders_number_idx ON public.orders (number);
 CREATE INDEX orders_user_id_idx ON public.orders (user_id);

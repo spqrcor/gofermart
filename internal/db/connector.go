@@ -25,11 +25,15 @@ func NewDB(logger *zap.Logger, databaseURI string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+	return res, nil
+}
+
+func Migrate(res *sql.DB) error {
 	if err := goose.SetDialect("postgres"); err != nil {
-		return nil, err
+		return err
 	}
 	if err := goose.Up(res, "internal/migrations"); err != nil {
-		return nil, err
+		return err
 	}
-	return res, nil
+	return nil
 }

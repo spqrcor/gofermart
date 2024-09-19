@@ -6,7 +6,11 @@ CREATE TABLE public.withdrawals (
                                number varchar(20) NOT NULL,
                                sum numeric(12, 2) NOT NULL CHECK (sum > 0),
                                created_at timestamptz DEFAULT now() NOT NULL,
-                               CONSTRAINT withdraw_list_pkey PRIMARY KEY (id)
+                               CONSTRAINT withdraw_list_pkey PRIMARY KEY (id),
+                               CONSTRAINT withdrawals_user_id_fkey
+                                   FOREIGN KEY (user_id)
+                                   REFERENCES public.users(id)
+                                   ON DELETE CASCADE
 );
 CREATE INDEX withdrawals_user_id_idx ON public.withdrawals (user_id);
 CREATE INDEX withdrawals_created_at_idx ON public.withdrawals (created_at DESC);
