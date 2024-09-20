@@ -25,7 +25,8 @@ func AddOrdersHandler(o *services.OrderService) http.HandlerFunc {
 		} else if errors.Is(err, services.ErrOrderUserExists) {
 			res.WriteHeader(http.StatusOK)
 			return
-		} else if err != nil {
+		}
+		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}

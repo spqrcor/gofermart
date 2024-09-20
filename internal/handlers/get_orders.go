@@ -13,7 +13,8 @@ func GetOrdersHandler(o *services.OrderService) http.HandlerFunc {
 		if errors.Is(err, services.ErrOrdersNotFound) {
 			res.WriteHeader(http.StatusNoContent)
 			return
-		} else if err != nil {
+		}
+		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -22,7 +22,8 @@ func AddWithdrawalHandler(w *services.WithdrawalService) http.HandlerFunc {
 		} else if errors.Is(err, services.ErrBalance) {
 			http.Error(res, err.Error(), http.StatusPaymentRequired)
 			return
-		} else if err != nil {
+		}
+		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}

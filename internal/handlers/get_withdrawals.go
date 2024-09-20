@@ -13,7 +13,8 @@ func GetWithdrawalsHandler(w *services.WithdrawalService) http.HandlerFunc {
 		if errors.Is(err, services.ErrWithdrawNotFound) {
 			res.WriteHeader(http.StatusNoContent)
 			return
-		} else if err != nil {
+		}
+		if err != nil {
 			http.Error(res, err.Error(), http.StatusInternalServerError)
 			return
 		}

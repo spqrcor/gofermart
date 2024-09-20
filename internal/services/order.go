@@ -53,7 +53,8 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
        ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id`, orderID, ctx.Value(authenticate.ContextUserID), orderNum).Scan(&baseOrderID, &baseUserID)
 	if err != nil {
 		return err
-	} else if ctx.Value(authenticate.ContextUserID) != uuid.MustParse(baseUserID) {
+	}
+	if ctx.Value(authenticate.ContextUserID) != uuid.MustParse(baseUserID) {
 		return ErrOrderAnotherUserExists
 	} else if orderID != baseOrderID {
 		return ErrOrderUserExists

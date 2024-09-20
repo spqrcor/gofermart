@@ -2,6 +2,7 @@ package workers
 
 import (
 	"context"
+	"fmt"
 	"github.com/spqrcor/gofermart/internal/client"
 	"github.com/spqrcor/gofermart/internal/services"
 	"go.uber.org/zap"
@@ -24,7 +25,7 @@ func NewOrderWorker(ctx context.Context, orderService *services.OrderService, or
 func (w *OrderWorker) Run() {
 	go w.fillQueue()
 	for i := 1; i <= w.workerCount; i++ {
-		go w.worker()
+		w.worker()
 	}
 }
 
@@ -35,29 +36,35 @@ func (w *OrderWorker) fillQueue() {
 	}
 }
 
-func (w *OrderWorker) worker() {
-	for {
-		select {
-		case <-w.ctx.Done():
-			return
-		case orderNum, ok := <-w.orderQueue:
-			if !ok {
-				w.logger.Info("order queue is closed")
+func (w *OrderWorker) worker() chan error {
+	errors := make(chan error)
+	go func() {
+		defer close(errors)
+		for {
+			select {
+			case <-w.ctx.Done():
 				return
-			}
+			case orderNum, ok := <-w.orderQueue:
+				if !ok {
+					w.logger.Info("order queue is closed")
+					errors <- fmt.Errorf("order queue is closed")
+					return
+				}
 
-			result, sleepSeconds, err := w.orderClient.CheckOrder(orderNum)
-			if err != nil {
-				w.logger.Info(err.Error())
-			} else {
-				if err := w.orderService.ChangeStatus(w.ctx, result); err != nil {
+				result, sleepSeconds, err := w.orderClient.CheckOrder(orderNum)
+				if err != nil {
 					w.logger.Info(err.Error())
+				} else {
+					if err := w.orderService.ChangeStatus(w.ctx, result); err != nil {
+						w.logger.Info(err.Error())
+					}
+				}
+
+				if sleepSeconds > 0 {
+					time.Sleep(time.Duration(sleepSeconds) * time.Second)
 				}
 			}
-
-			if sleepSeconds > 0 {
-				time.Sleep(time.Duration(sleepSeconds) * time.Second)
-			}
 		}
-	}
+	}()
+	return errors
 }

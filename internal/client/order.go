@@ -25,6 +25,9 @@ func (c OrderClient) CheckOrder(OrderNum string) (services.OrderFromAccrual, int
 	if err != nil {
 		return data, 0, err
 	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode == http.StatusTooManyRequests {
 		retryAfter := resp.Header.Get("Retry-After")
 		seconds, err := strconv.Atoi(retryAfter)
@@ -32,14 +35,12 @@ func (c OrderClient) CheckOrder(OrderNum string) (services.OrderFromAccrual, int
 			seconds = 0
 		}
 		return data, seconds, errors.New("Error " + resp.Status)
-	} else if resp.StatusCode != http.StatusOK {
+	}
+	if resp.StatusCode != http.StatusOK {
 		return data, 0, errors.New("Error " + resp.Status)
 	}
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	defer func() {
-		_ = resp.Body.Close()
-	}()
 	if err = json.Unmarshal(bodyBytes, &data); err != nil {
 		return data, 0, err
 	}

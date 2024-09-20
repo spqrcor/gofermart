@@ -23,7 +23,8 @@ func RegisterHandler(u *services.UserService, a *authenticate.Authenticate) http
 		} else if errors.Is(err, services.ErrLoginExists) {
 			res.WriteHeader(http.StatusConflict)
 			return
-		} else if err != nil {
+		}
+		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}

@@ -51,7 +51,8 @@ func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, 
 		userID, input.Login, string(bytes)).Scan(&baseUserID)
 	if err != nil {
 		return uuid.Nil, err
-	} else if userID != baseUserID {
+	}
+	if userID != baseUserID {
 		return uuid.Nil, ErrLoginExists
 	}
 	return uuid.MustParse(baseUserID), nil
@@ -66,7 +67,8 @@ func (u *UserService) Login(ctx context.Context, input InputDataUser) (uuid.UUID
 	err := row.Scan(&userID, &password)
 	if errors.Is(err, sql.ErrNoRows) {
 		return uuid.Nil, ErrLogin
-	} else if err != nil {
+	}
+	if err != nil {
 		return uuid.Nil, err
 	}
 

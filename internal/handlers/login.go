@@ -20,7 +20,8 @@ func LoginHandler(u *services.UserService, a *authenticate.Authenticate) http.Ha
 		if errors.Is(err, services.ErrLogin) {
 			http.Error(res, err.Error(), http.StatusUnauthorized)
 			return
-		} else if err != nil {
+		}
+		if err != nil {
 			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
