@@ -38,7 +38,7 @@ func main() {
 	withdrawalService := services.NewWithdrawalService(dbRes, loggerRes, conf.QueryTimeOut)
 	orderClient := client.NewOrderClient(loggerRes, conf.AccrualSystemAddress)
 
-	orderWorker := workers.NewOrderWorker(mainCtx, orderService, orderQueue, loggerRes, conf.WorkerCount, orderClient)
+	orderWorker := workers.NewOrderWorker(mainCtx, orderService, orderQueue, loggerRes, conf, orderClient)
 	orderWorker.Run()
 
 	appServer := server.NewServer(userService, orderService, withdrawalService, loggerRes, conf.RunAddr, authService)

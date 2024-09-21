@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/spqrcor/gofermart/internal/client"
+	"github.com/spqrcor/gofermart/internal/config"
 	"github.com/spqrcor/gofermart/internal/services"
 	"go.uber.org/zap"
 	"time"
@@ -14,24 +15,24 @@ type OrderWorker struct {
 	orderService *services.OrderService
 	orderQueue   chan string
 	logger       *zap.Logger
-	workerCount  int
+	conf         config.Config
 	orderClient  *client.OrderClient
 }
 
-func NewOrderWorker(ctx context.Context, orderService *services.OrderService, orderQueue chan string, logger *zap.Logger, workerCount int, orderClient *client.OrderClient) *OrderWorker {
-	return &OrderWorker{ctx: ctx, orderService: orderService, orderQueue: orderQueue, logger: logger, workerCount: workerCount, orderClient: orderClient}
+func NewOrderWorker(ctx context.Context, orderService *services.OrderService, orderQueue chan string, logger *zap.Logger, conf config.Config, orderClient *client.OrderClient) *OrderWorker {
+	return &OrderWorker{ctx: ctx, orderService: orderService, orderQueue: orderQueue, logger: logger, conf: conf, orderClient: orderClient}
 }
 
 func (w *OrderWorker) Run() {
 	retryCount := 0
 	go w.fillQueue()
-	for i := 1; i <= w.workerCount; i++ {
+	for i := 1; i <= w.conf.WorkerCount; i++ {
 		errorCh := w.worker()
 
 		go func() {
 			for {
 				err := <-errorCh
-				if err != nil && retryCount < 10 {
+				if err != nil && retryCount < w.conf.RetryStartWorkerCount {
 					w.worker()
 					retryCount++
 				}
