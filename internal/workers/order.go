@@ -23,9 +23,20 @@ func NewOrderWorker(ctx context.Context, orderService *services.OrderService, or
 }
 
 func (w *OrderWorker) Run() {
+	retryCount := 0
 	go w.fillQueue()
 	for i := 1; i <= w.workerCount; i++ {
-		w.worker()
+		errorCh := w.worker()
+
+		go func() {
+			for {
+				err := <-errorCh
+				if err != nil && retryCount < 10 {
+					w.worker()
+					retryCount++
+				}
+			}
+		}()
 	}
 }
 
