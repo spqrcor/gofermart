@@ -40,7 +40,10 @@ type UserService struct {
 }
 
 func NewUserService(db *sql.DB, queryTimeOut time.Duration) *UserService {
-	return &UserService{db: db, queryTimeOut: queryTimeOut}
+	return &UserService{
+		db:           db,
+		queryTimeOut: queryTimeOut,
+	}
 }
 
 func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, error) {

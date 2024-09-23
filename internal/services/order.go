@@ -44,7 +44,11 @@ type OrderService struct {
 }
 
 func NewOrderService(orderQueue chan string, db *sql.DB, logger *zap.Logger, queryTimeOut time.Duration) *OrderService {
-	return &OrderService{orderQueue: orderQueue, db: db, logger: logger, queryTimeOut: queryTimeOut}
+	return &OrderService{
+		orderQueue: orderQueue,
+		db:         db, logger: logger,
+		queryTimeOut: queryTimeOut,
+	}
 }
 
 func (o *OrderService) Add(ctx context.Context, orderNum string) error {

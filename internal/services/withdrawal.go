@@ -44,7 +44,11 @@ type WithdrawalService struct {
 }
 
 func NewWithdrawalService(db *sql.DB, logger *zap.Logger, queryTimeOut time.Duration) *WithdrawalService {
-	return &WithdrawalService{db: db, logger: logger, queryTimeOut: queryTimeOut}
+	return &WithdrawalService{
+		db:           db,
+		logger:       logger,
+		queryTimeOut: queryTimeOut,
+	}
 }
 
 func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) error {

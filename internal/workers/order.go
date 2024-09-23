@@ -19,8 +19,50 @@ type OrderWorker struct {
 	orderClient  *client.OrderClient
 }
 
-func NewOrderWorker(ctx context.Context, orderService *services.OrderService, orderQueue chan string, logger *zap.Logger, conf config.Config, orderClient *client.OrderClient) *OrderWorker {
-	return &OrderWorker{ctx: ctx, orderService: orderService, orderQueue: orderQueue, logger: logger, conf: conf, orderClient: orderClient}
+func NewOrderWorker(opts ...func(*OrderWorker)) *OrderWorker {
+	orderWorker := &OrderWorker{
+		ctx: context.Background(),
+	}
+	for _, opt := range opts {
+		opt(orderWorker)
+	}
+	return orderWorker
+}
+
+func WithCtx(ctx context.Context) func(*OrderWorker) {
+	return func(o *OrderWorker) {
+		o.ctx = ctx
+	}
+}
+
+func WithOrderService(orderService *services.OrderService) func(*OrderWorker) {
+	return func(o *OrderWorker) {
+		o.orderService = orderService
+	}
+}
+
+func WithOrderQueue(orderQueue chan string) func(*OrderWorker) {
+	return func(o *OrderWorker) {
+		o.orderQueue = orderQueue
+	}
+}
+
+func WithLogger(logger *zap.Logger) func(*OrderWorker) {
+	return func(o *OrderWorker) {
+		o.logger = logger
+	}
+}
+
+func WithConfig(conf config.Config) func(*OrderWorker) {
+	return func(o *OrderWorker) {
+		o.conf = conf
+	}
+}
+
+func WithOrderClient(orderClient *client.OrderClient) func(*OrderWorker) {
+	return func(o *OrderWorker) {
+		o.orderClient = orderClient
+	}
 }
 
 func (w *OrderWorker) Run() {

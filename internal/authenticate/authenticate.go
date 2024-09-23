@@ -24,8 +24,30 @@ type Authenticate struct {
 	tokenExp  time.Duration
 }
 
-func NewAuthenticateService(logger *zap.Logger, secretKey string, tokenExp time.Duration) *Authenticate {
-	return &Authenticate{logger: logger, secretKey: secretKey, tokenExp: tokenExp}
+func NewAuthenticateService(opts ...func(*Authenticate)) *Authenticate {
+	auth := &Authenticate{}
+	for _, opt := range opts {
+		opt(auth)
+	}
+	return auth
+}
+
+func WithLogger(logger *zap.Logger) func(*Authenticate) {
+	return func(a *Authenticate) {
+		a.logger = logger
+	}
+}
+
+func WithSecretKey(secretKey string) func(*Authenticate) {
+	return func(a *Authenticate) {
+		a.secretKey = secretKey
+	}
+}
+
+func WithTokenExp(tokenExp time.Duration) func(*Authenticate) {
+	return func(a *Authenticate) {
+		a.tokenExp = tokenExp
+	}
 }
 
 func (a *Authenticate) createCookie(UserID uuid.UUID) (http.Cookie, error) {

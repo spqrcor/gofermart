@@ -15,8 +15,24 @@ type OrderClient struct {
 	accrualSystemAddress string
 }
 
-func NewOrderClient(logger *zap.Logger, accrualSystemAddress string) *OrderClient {
-	return &OrderClient{logger: logger, accrualSystemAddress: accrualSystemAddress}
+func NewOrderClient(opts ...func(*OrderClient)) *OrderClient {
+	orderClient := &OrderClient{}
+	for _, opt := range opts {
+		opt(orderClient)
+	}
+	return orderClient
+}
+
+func WithLogger(logger *zap.Logger) func(*OrderClient) {
+	return func(o *OrderClient) {
+		o.logger = logger
+	}
+}
+
+func WithAccrualSystemAddress(accrualSystemAddress string) func(*OrderClient) {
+	return func(o *OrderClient) {
+		o.accrualSystemAddress = accrualSystemAddress
+	}
 }
 
 func (c OrderClient) CheckOrder(OrderNum string) (services.OrderFromAccrual, int, error) {

@@ -19,9 +19,47 @@ type HTTPServer struct {
 	authService       *authenticate.Authenticate
 }
 
-func NewServer(userService *services.UserService, orderService *services.OrderService, withdrawalService *services.WithdrawalService, logger *zap.Logger, runAddress string, authService *authenticate.Authenticate) *HTTPServer {
-	return &HTTPServer{
-		userService: userService, orderService: orderService, withdrawalService: withdrawalService, logger: logger, runAddress: runAddress, authService: authService,
+func NewServer(opts ...func(*HTTPServer)) *HTTPServer {
+	server := &HTTPServer{}
+	for _, opt := range opts {
+		opt(server)
+	}
+	return server
+}
+
+func WithUserService(userService *services.UserService) func(*HTTPServer) {
+	return func(h *HTTPServer) {
+		h.userService = userService
+	}
+}
+
+func WithOrderService(orderService *services.OrderService) func(*HTTPServer) {
+	return func(h *HTTPServer) {
+		h.orderService = orderService
+	}
+}
+
+func WithWithdrawalService(withdrawalService *services.WithdrawalService) func(*HTTPServer) {
+	return func(h *HTTPServer) {
+		h.withdrawalService = withdrawalService
+	}
+}
+
+func WithLogger(logger *zap.Logger) func(*HTTPServer) {
+	return func(h *HTTPServer) {
+		h.logger = logger
+	}
+}
+
+func WithRunAddress(runAddress string) func(*HTTPServer) {
+	return func(h *HTTPServer) {
+		h.runAddress = runAddress
+	}
+}
+
+func WithAuthService(authService *authenticate.Authenticate) func(*HTTPServer) {
+	return func(h *HTTPServer) {
+		h.authService = authService
 	}
 }
 

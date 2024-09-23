@@ -34,16 +34,37 @@ func main() {
 	orderQueue := make(chan string)
 	defer close(orderQueue)
 
-	authService := authenticate.NewAuthenticateService(loggerRes, conf.SecretKey, conf.TokenExp)
+	authService := authenticate.NewAuthenticateService(
+		authenticate.WithLogger(loggerRes),
+		authenticate.WithSecretKey(conf.SecretKey),
+		authenticate.WithTokenExp(conf.TokenExp),
+	)
 	userService := services.NewUserService(dbRes, conf.QueryTimeOut)
 	orderService := services.NewOrderService(orderQueue, dbRes, loggerRes, conf.QueryTimeOut)
 	withdrawalService := services.NewWithdrawalService(dbRes, loggerRes, conf.QueryTimeOut)
-	orderClient := client.NewOrderClient(loggerRes, conf.AccrualSystemAddress)
+	orderClient := client.NewOrderClient(
+		client.WithLogger(loggerRes),
+		client.WithAccrualSystemAddress(conf.AccrualSystemAddress),
+	)
 
-	orderWorker := workers.NewOrderWorker(mainCtx, orderService, orderQueue, loggerRes, conf, orderClient)
+	orderWorker := workers.NewOrderWorker(
+		workers.WithCtx(mainCtx),
+		workers.WithOrderService(orderService),
+		workers.WithOrderQueue(orderQueue),
+		workers.WithLogger(loggerRes),
+		workers.WithConfig(conf),
+		workers.WithOrderClient(orderClient),
+	)
 	orderWorker.Run()
 
-	appServer := server.NewServer(userService, orderService, withdrawalService, loggerRes, conf.RunAddr, authService)
+	appServer := server.NewServer(
+		server.WithUserService(userService),
+		server.WithOrderService(orderService),
+		server.WithWithdrawalService(withdrawalService),
+		server.WithLogger(loggerRes),
+		server.WithRunAddress(conf.RunAddr),
+		server.WithAuthService(authService),
+	)
 	err = appServer.Start()
 	if errors.Is(err, http.ErrServerClosed) {
 		loggerRes.Error("Server stop")
