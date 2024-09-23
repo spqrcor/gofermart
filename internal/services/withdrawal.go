@@ -60,7 +60,7 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(childCtx, updateBalanceByIdQuery, userID, input.Sum)
+	_, err = tx.ExecContext(childCtx, updateBalanceByIDQuery, userID, input.Sum)
 	if err != nil {
 		_ = tx.Rollback()
 		var pgError *pgconn.PgError

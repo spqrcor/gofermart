@@ -26,7 +26,7 @@ const (
 	addUserQuery              = "INSERT INTO users (id, login, password) VALUES ($1, $2, $3) ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id"
 	getUserByLoginQuery       = "SELECT id, password FROM users WHERE login = $1"
 	updateBalanceByOrderQuery = "UPDATE users SET balance = balance + $1 WHERE id = (SELECT user_id FROM orders WHERE number = $2)"
-	updateBalanceByIdQuery    = "UPDATE users SET balance = balance - $2 WHERE id = $1"
+	updateBalanceByIDQuery    = "UPDATE users SET balance = balance - $2 WHERE id = $1"
 )
 
 type InputDataUser struct {
