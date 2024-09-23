@@ -30,8 +30,7 @@ func (w *OrderWorker) Run() {
 		errorCh := w.worker()
 
 		go func() {
-			for {
-				err := <-errorCh
+			for err := range errorCh {
 				if err != nil && retryCount < w.conf.RetryStartWorkerCount {
 					w.worker()
 					retryCount++

@@ -11,6 +11,13 @@ import (
 	"time"
 )
 
+const (
+	addOrderQuery            = "INSERT INTO orders (id, user_id, number) VALUES ($1, $2, $3) ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id"
+	getAllOrdersQuery        = "SELECT number, status, accrual, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC"
+	getUnCompleteOrdersQuery = "SELECT number FROM orders WHERE status IN ('NEW', 'PROCESSING') ORDER BY created_at"
+	updateOrderByNumberQuery = "UPDATE orders SET status = $1, accrual =$2 WHERE number = $3"
+)
+
 type Order struct {
 	Number     string  `json:"number"`
 	Status     string  `json:"status"`
@@ -49,8 +56,7 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
-	err := o.db.QueryRowContext(childCtx, `INSERT INTO orders (id, user_id, number) VALUES ($1, $2, $3)  
-       ON CONFLICT(number) DO UPDATE SET number = EXCLUDED.number RETURNING id, user_id`, orderID, ctx.Value(authenticate.ContextUserID), orderNum).Scan(&baseOrderID, &baseUserID)
+	err := o.db.QueryRowContext(childCtx, addOrderQuery, orderID, ctx.Value(authenticate.ContextUserID), orderNum).Scan(&baseOrderID, &baseUserID)
 	if err != nil {
 		return err
 	}
@@ -68,7 +74,7 @@ func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
 
-	rows, err := o.db.QueryContext(childCtx, "SELECT number, status, accrual, created_at FROM orders WHERE user_id = $1 ORDER BY created_at DESC", ctx.Value(authenticate.ContextUserID))
+	rows, err := o.db.QueryContext(childCtx, getAllOrdersQuery, ctx.Value(authenticate.ContextUserID))
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +109,7 @@ func (o *OrderService) GetUnComplete(ctx context.Context) ([]string, error) {
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
 
-	rows, err := o.db.QueryContext(childCtx, "SELECT number FROM orders WHERE status IN ('NEW', 'PROCESSING') ORDER BY created_at")
+	rows, err := o.db.QueryContext(childCtx, getUnCompleteOrdersQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -134,13 +140,13 @@ func (o *OrderService) ChangeStatus(ctx context.Context, data OrderFromAccrual) 
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(childCtx, "UPDATE orders SET status = $1, accrual =$2 WHERE number = $3", data.Status, data.Accrual, data.Order)
+	_, err = tx.ExecContext(childCtx, updateOrderByNumberQuery, data.Status, data.Accrual, data.Order)
 	if err != nil {
 		_ = tx.Rollback()
 		return err
 	}
 	if data.Accrual > 0 {
-		_, err = tx.ExecContext(childCtx, "UPDATE users SET balance = balance + $1 WHERE id = (SELECT user_id FROM orders WHERE number = $2)", data.Accrual, data.Order)
+		_, err = tx.ExecContext(childCtx, updateBalanceByOrderQuery, data.Accrual, data.Order)
 		if err != nil {
 			_ = tx.Rollback()
 			return err

@@ -20,7 +20,8 @@ func RegisterHandler(u *services.UserService, a *authenticate.Authenticate) http
 		if errors.Is(err, services.ErrValidation) {
 			http.Error(res, err.Error(), http.StatusBadRequest)
 			return
-		} else if errors.Is(err, services.ErrLoginExists) {
+		}
+		if errors.Is(err, services.ErrLoginExists) {
 			res.WriteHeader(http.StatusConflict)
 			return
 		}

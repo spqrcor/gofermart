@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -20,36 +21,39 @@ type Config struct {
 	TokenExp              time.Duration `env:"TOKEN_EXP"`
 }
 
+var cfg = Config{
+	RunAddr:               "localhost:8080",
+	LogLevel:              zap.InfoLevel,
+	AccrualSystemAddress:  "",
+	DatabaseURI:           "",
+	QueryTimeOut:          3,
+	WorkerCount:           3,
+	RetryStartWorkerCount: 10,
+	SecretKey:             "KLJ-fo3Fksd3fl!=",
+	TokenExp:              time.Hour * 3,
+}
+var once sync.Once
+
 func NewConfig() Config {
-	var cfg = Config{
-		RunAddr:               "localhost:8080",
-		LogLevel:              zap.InfoLevel,
-		AccrualSystemAddress:  "",
-		DatabaseURI:           "",
-		QueryTimeOut:          3,
-		WorkerCount:           3,
-		RetryStartWorkerCount: 10,
-		SecretKey:             "KLJ-fo3Fksd3fl!=",
-		TokenExp:              time.Hour * 3,
-	}
+	once.Do(func() {
+		flag.StringVar(&cfg.RunAddr, "a", cfg.RunAddr, "address and port to run server")
+		flag.StringVar(&cfg.AccrualSystemAddress, "r", cfg.AccrualSystemAddress, "accrual system address")
+		flag.StringVar(&cfg.DatabaseURI, "d", cfg.DatabaseURI, "database uri")
+		flag.Parse()
 
-	flag.StringVar(&cfg.RunAddr, "a", cfg.RunAddr, "address and port to run server")
-	flag.StringVar(&cfg.AccrualSystemAddress, "r", cfg.AccrualSystemAddress, "accrual system address")
-	flag.StringVar(&cfg.DatabaseURI, "d", cfg.DatabaseURI, "database uri")
-	flag.Parse()
+		serverAddressEnv, findAddress := os.LookupEnv("RUN_ADDRESS")
+		serverDatabaseURI, findDatabaseURI := os.LookupEnv("DATABASE_URI")
+		serverAccrualSystemAddress, findAccrualSystemAddress := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
 
-	serverAddressEnv, findAddress := os.LookupEnv("RUN_ADDRESS")
-	serverDatabaseURI, findDatabaseURI := os.LookupEnv("DATABASE_URI")
-	serverAccrualSystemAddress, findAccrualSystemAddress := os.LookupEnv("ACCRUAL_SYSTEM_ADDRESS")
-
-	if findAddress {
-		cfg.RunAddr = serverAddressEnv
-	}
-	if findDatabaseURI {
-		cfg.DatabaseURI = serverDatabaseURI
-	}
-	if findAccrualSystemAddress {
-		cfg.AccrualSystemAddress = serverAccrualSystemAddress
-	}
+		if findAddress {
+			cfg.RunAddr = serverAddressEnv
+		}
+		if findDatabaseURI {
+			cfg.DatabaseURI = serverDatabaseURI
+		}
+		if findAccrualSystemAddress {
+			cfg.AccrualSystemAddress = serverAccrualSystemAddress
+		}
+	})
 	return cfg
 }

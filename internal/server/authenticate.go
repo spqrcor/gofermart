@@ -14,16 +14,15 @@ func authenticateMiddleware(logger *zap.Logger, auth *authenticate.Authenticate)
 			if err != nil {
 				http.Error(rw, err.Error(), http.StatusUnauthorized)
 				return
-			} else {
-				UserID, err := auth.GetUserIDFromCookie(cookie.Value)
-				if err != nil {
-					logger.Error(err.Error())
-					http.Error(rw, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				ctx := context.WithValue(r.Context(), authenticate.ContextUserID, UserID)
-				next.ServeHTTP(rw, r.WithContext(ctx))
 			}
+			UserID, err := auth.GetUserIDFromCookie(cookie.Value)
+			if err != nil {
+				logger.Error(err.Error())
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			ctx := context.WithValue(r.Context(), authenticate.ContextUserID, UserID)
+			next.ServeHTTP(rw, r.WithContext(ctx))
 		})
 	}
 }

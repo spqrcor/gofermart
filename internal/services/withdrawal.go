@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+const (
+	addWithdrawalQuery     = "INSERT INTO withdrawals (user_id, number, sum) VALUES ($1, $2, $3) RETURNING id"
+	getAllWithdrawalsQuery = "SELECT number, sum, created_at FROM withdrawals WHERE user_id = $1 ORDER BY created_at DESC"
+	getBalanceQuery        = "SELECT balance, (SELECT COALESCE(SUM(w.sum), 0) FROM withdrawals w WHERE w.user_id = u.id) FROM users u WHERE id = $1"
+)
+
 type InputWithdrawal struct {
 	OrderNum string  `json:"order"`
 	Sum      float64 `json:"sum"`
@@ -54,7 +60,7 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(childCtx, "UPDATE users SET balance = balance - $2 WHERE id = $1", userID, input.Sum)
+	_, err = tx.ExecContext(childCtx, updateBalanceByIdQuery, userID, input.Sum)
 	if err != nil {
 		_ = tx.Rollback()
 		var pgError *pgconn.PgError
@@ -65,7 +71,7 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 	}
 
 	var withdrawID string
-	err = tx.QueryRowContext(childCtx, "INSERT INTO withdrawals (user_id, number, sum) VALUES ($1, $2, $3) RETURNING id", userID, input.OrderNum, input.Sum).Scan(&withdrawID)
+	err = tx.QueryRowContext(childCtx, addWithdrawalQuery, userID, input.OrderNum, input.Sum).Scan(&withdrawID)
 	if err != nil {
 		_ = tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
@@ -81,8 +87,7 @@ func (w *WithdrawalService) GetAll(ctx context.Context) ([]Withdrawal, error) {
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*w.queryTimeOut)
 	defer cancel()
 
-	rows, err := w.db.QueryContext(childCtx, "SELECT number, sum, created_at FROM withdrawals WHERE user_id = $1 ORDER BY created_at DESC",
-		ctx.Value(authenticate.ContextUserID))
+	rows, err := w.db.QueryContext(childCtx, getAllWithdrawalsQuery, ctx.Value(authenticate.ContextUserID))
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +118,7 @@ func (w *WithdrawalService) GetBalance(ctx context.Context) (BalanceInfo, error)
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*w.queryTimeOut)
 	defer cancel()
 
-	row := w.db.QueryRowContext(childCtx, "SELECT balance, (SELECT COALESCE(SUM(w.sum), 0) FROM withdrawals w WHERE w.user_id = u.id) FROM users u WHERE id = $1",
-		ctx.Value(authenticate.ContextUserID))
+	row := w.db.QueryRowContext(childCtx, getBalanceQuery, ctx.Value(authenticate.ContextUserID))
 	if err := row.Scan(&balanceInfo.Current, &balanceInfo.Withdrawn); err != nil {
 		return balanceInfo, errors.New("user not found")
 	}

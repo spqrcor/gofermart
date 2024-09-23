@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github.com/spqrcor/gofermart/internal/authenticate"
 	"github.com/spqrcor/gofermart/internal/client"
 	"github.com/spqrcor/gofermart/internal/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/spqrcor/gofermart/internal/services"
 	"github.com/spqrcor/gofermart/internal/workers"
 	"log"
+	"net/http"
 )
 
 func main() {
@@ -42,7 +44,11 @@ func main() {
 	orderWorker.Run()
 
 	appServer := server.NewServer(userService, orderService, withdrawalService, loggerRes, conf.RunAddr, authService)
-	if err := appServer.Start(); err != nil {
+	err = appServer.Start()
+	if errors.Is(err, http.ErrServerClosed) {
+		loggerRes.Error("Server stop")
+	}
+	if err != nil {
 		loggerRes.Error(err.Error())
 	}
 }

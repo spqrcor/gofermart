@@ -15,10 +15,19 @@ var ErrLoginExists = fmt.Errorf("login exists")
 var ErrValidation = fmt.Errorf("validation error")
 var ErrGeneratePassword = fmt.Errorf("generate password error")
 
-const minPasswordLength = 6
-const maxPasswordLength = 72
-const minLoginLength = 3
-const maxLoginLength = 255
+const (
+	minPasswordLength = 6
+	maxPasswordLength = 72
+	minLoginLength    = 3
+	maxLoginLength    = 255
+)
+
+const (
+	addUserQuery              = "INSERT INTO users (id, login, password) VALUES ($1, $2, $3) ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id"
+	getUserByLoginQuery       = "SELECT id, password FROM users WHERE login = $1"
+	updateBalanceByOrderQuery = "UPDATE users SET balance = balance + $1 WHERE id = (SELECT user_id FROM orders WHERE number = $2)"
+	updateBalanceByIdQuery    = "UPDATE users SET balance = balance - $2 WHERE id = $1"
+)
 
 type InputDataUser struct {
 	Login    string `json:"login"`
@@ -47,8 +56,7 @@ func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, 
 	userID := uuid.NewString()
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*u.queryTimeOut)
 	defer cancel()
-	err = u.db.QueryRowContext(childCtx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3) ON CONFLICT(login) DO UPDATE SET login = EXCLUDED.login RETURNING id",
-		userID, input.Login, string(bytes)).Scan(&baseUserID)
+	err = u.db.QueryRowContext(childCtx, addUserQuery, userID, input.Login, string(bytes)).Scan(&baseUserID)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -61,7 +69,7 @@ func (u *UserService) Add(ctx context.Context, input InputDataUser) (uuid.UUID, 
 func (u *UserService) Login(ctx context.Context, input InputDataUser) (uuid.UUID, error) {
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*u.queryTimeOut)
 	defer cancel()
-	row := u.db.QueryRowContext(childCtx, "SELECT id, password FROM users WHERE login = $1", input.Login)
+	row := u.db.QueryRowContext(childCtx, getUserByLoginQuery, input.Login)
 
 	var userID, password string
 	err := row.Scan(&userID, &password)
