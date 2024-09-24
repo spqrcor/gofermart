@@ -56,7 +56,7 @@ func TestAddOrdersHandler(t *testing.T) {
 			name:        "order another user exists",
 			contentType: "text/plain",
 			body:        []byte(`12345678903`),
-			statusCode:  http.StatusOK,
+			statusCode:  http.StatusConflict,
 		},
 	}
 
