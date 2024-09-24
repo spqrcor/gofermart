@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func RegisterHandler(u *services.UserService, a *authenticate.Authenticate) http.HandlerFunc {
+func RegisterHandler(u services.User, a authenticate.Auth) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var input services.InputDataUser
 		if err := utils.FromPostJSON(req, &input); err != nil {

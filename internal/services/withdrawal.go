@@ -23,7 +23,7 @@ type InputWithdrawal struct {
 	Sum      float64 `json:"sum"`
 }
 
-type Withdrawal struct {
+type WithdrawalData struct {
 	OrderNum    string  `json:"order"`
 	Sum         float64 `json:"sum"`
 	ProcessedAt string  `json:"processed_at"`
@@ -36,6 +36,12 @@ type BalanceInfo struct {
 
 var ErrBalance = fmt.Errorf("balance error")
 var ErrWithdrawNotFound = fmt.Errorf("withdraw not found")
+
+type Withdrawal interface {
+	Add(ctx context.Context, input InputWithdrawal) error
+	GetAll(ctx context.Context) ([]WithdrawalData, error)
+	GetBalance(ctx context.Context) (BalanceInfo, error)
+}
 
 type WithdrawalService struct {
 	db           *sql.DB
@@ -86,8 +92,8 @@ func (w *WithdrawalService) Add(ctx context.Context, input InputWithdrawal) erro
 	return tx.Commit()
 }
 
-func (w *WithdrawalService) GetAll(ctx context.Context) ([]Withdrawal, error) {
-	var withdrawals []Withdrawal
+func (w *WithdrawalService) GetAll(ctx context.Context) ([]WithdrawalData, error) {
+	var withdrawals []WithdrawalData
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*w.queryTimeOut)
 	defer cancel()
 
@@ -105,7 +111,7 @@ func (w *WithdrawalService) GetAll(ctx context.Context) ([]Withdrawal, error) {
 	}()
 
 	for rows.Next() {
-		w := Withdrawal{}
+		w := WithdrawalData{}
 		if err = rows.Scan(&w.OrderNum, &w.Sum, &w.ProcessedAt); err != nil {
 			return nil, err
 		}

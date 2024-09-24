@@ -18,6 +18,11 @@ type ContextKey string
 
 var ContextUserID ContextKey = "UserID"
 
+type Auth interface {
+	GetUserIDFromCookie(tokenString string) (uuid.UUID, error)
+	SetCookie(rw http.ResponseWriter, UserID uuid.UUID)
+}
+
 type Authenticate struct {
 	logger    *zap.Logger
 	secretKey string

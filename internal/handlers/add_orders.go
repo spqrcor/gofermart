@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func AddOrdersHandler(o *services.OrderService) http.HandlerFunc {
+func AddOrdersHandler(o services.Order) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		orderNum, err := utils.FromPostPlain(req)
 		if err != nil {

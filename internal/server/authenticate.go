@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func authenticateMiddleware(logger *zap.Logger, auth *authenticate.Authenticate) func(next http.Handler) http.Handler {
+func authenticateMiddleware(logger *zap.Logger, auth authenticate.Auth) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie("Authorization")

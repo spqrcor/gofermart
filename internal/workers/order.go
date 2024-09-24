@@ -12,7 +12,7 @@ import (
 
 type OrderWorker struct {
 	ctx          context.Context
-	orderService *services.OrderService
+	orderService services.Order
 	orderQueue   chan string
 	logger       *zap.Logger
 	conf         config.Config
@@ -35,7 +35,7 @@ func WithCtx(ctx context.Context) func(*OrderWorker) {
 	}
 }
 
-func WithOrderService(orderService *services.OrderService) func(*OrderWorker) {
+func WithOrderService(orderService services.Order) func(*OrderWorker) {
 	return func(o *OrderWorker) {
 		o.orderService = orderService
 	}

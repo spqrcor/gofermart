@@ -11,12 +11,12 @@ import (
 )
 
 type HTTPServer struct {
-	userService       *services.UserService
-	orderService      *services.OrderService
-	withdrawalService *services.WithdrawalService
+	userService       services.User
+	orderService      services.Order
+	withdrawalService services.Withdrawal
 	logger            *zap.Logger
 	runAddress        string
-	authService       *authenticate.Authenticate
+	authService       authenticate.Auth
 }
 
 func NewServer(opts ...func(*HTTPServer)) *HTTPServer {
@@ -27,19 +27,19 @@ func NewServer(opts ...func(*HTTPServer)) *HTTPServer {
 	return server
 }
 
-func WithUserService(userService *services.UserService) func(*HTTPServer) {
+func WithUserService(userService services.User) func(*HTTPServer) {
 	return func(h *HTTPServer) {
 		h.userService = userService
 	}
 }
 
-func WithOrderService(orderService *services.OrderService) func(*HTTPServer) {
+func WithOrderService(orderService services.Order) func(*HTTPServer) {
 	return func(h *HTTPServer) {
 		h.orderService = orderService
 	}
 }
 
-func WithWithdrawalService(withdrawalService *services.WithdrawalService) func(*HTTPServer) {
+func WithWithdrawalService(withdrawalService services.Withdrawal) func(*HTTPServer) {
 	return func(h *HTTPServer) {
 		h.withdrawalService = withdrawalService
 	}
@@ -57,7 +57,7 @@ func WithRunAddress(runAddress string) func(*HTTPServer) {
 	}
 }
 
-func WithAuthService(authService *authenticate.Authenticate) func(*HTTPServer) {
+func WithAuthService(authService authenticate.Auth) func(*HTTPServer) {
 	return func(h *HTTPServer) {
 		h.authService = authService
 	}

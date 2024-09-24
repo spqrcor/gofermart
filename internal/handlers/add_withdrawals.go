@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func AddWithdrawalHandler(w *services.WithdrawalService) http.HandlerFunc {
+func AddWithdrawalHandler(w services.Withdrawal) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var input services.InputWithdrawal
 		if err := utils.FromPostJSON(req, &input); err != nil {

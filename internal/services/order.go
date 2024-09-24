@@ -18,7 +18,7 @@ const (
 	updateOrderByNumberQuery = "UPDATE orders SET status = $1, accrual =$2 WHERE number = $3"
 )
 
-type Order struct {
+type OrderData struct {
 	Number     string  `json:"number"`
 	Status     string  `json:"status"`
 	Accrual    float64 `json:"accrual,omitempty"`
@@ -35,6 +35,13 @@ var ErrOrderAnotherUserExists = fmt.Errorf("order another user exists")
 var ErrOrderUserExists = fmt.Errorf("order user exists")
 var ErrOrderInvalidFormat = fmt.Errorf("order invalid format")
 var ErrOrdersNotFound = fmt.Errorf("orders not found")
+
+type Order interface {
+	Add(ctx context.Context, orderNum string) error
+	GetAll(ctx context.Context) ([]OrderData, error)
+	GetUnComplete(ctx context.Context) ([]string, error)
+	ChangeStatus(ctx context.Context, data OrderFromAccrual) error
+}
 
 type OrderService struct {
 	orderQueue   chan string
@@ -73,8 +80,8 @@ func (o *OrderService) Add(ctx context.Context, orderNum string) error {
 	return nil
 }
 
-func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
-	var orders []Order
+func (o *OrderService) GetAll(ctx context.Context) ([]OrderData, error) {
+	var orders []OrderData
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*o.queryTimeOut)
 	defer cancel()
 
@@ -92,7 +99,7 @@ func (o *OrderService) GetAll(ctx context.Context) ([]Order, error) {
 	}()
 
 	for rows.Next() {
-		o := Order{}
+		o := OrderData{}
 		var accrual sql.NullFloat64
 		if err = rows.Scan(&o.Number, &o.Status, &accrual, &o.UploadedAt); err != nil {
 			return nil, err
