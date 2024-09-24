@@ -16,7 +16,7 @@ type OrderWorker struct {
 	orderQueue   chan string
 	logger       *zap.Logger
 	conf         config.Config
-	orderClient  *client.OrderClient
+	orderClient  client.OrderClient
 }
 
 func NewOrderWorker(opts ...func(*OrderWorker)) *OrderWorker {
@@ -59,7 +59,7 @@ func WithConfig(conf config.Config) func(*OrderWorker) {
 	}
 }
 
-func WithOrderClient(orderClient *client.OrderClient) func(*OrderWorker) {
+func WithOrderClient(orderClient client.OrderClient) func(*OrderWorker) {
 	return func(o *OrderWorker) {
 		o.orderClient = orderClient
 	}
