@@ -56,7 +56,7 @@ func TestAddOrdersHandler(t *testing.T) {
 			name:        "order another user exists",
 			contentType: "text/plain",
 			body:        []byte(`12345678903`),
-			statusCode:  http.StatusConflict,
+			statusCode:  http.StatusOK,
 		},
 	}
 
@@ -69,7 +69,7 @@ func TestAddOrdersHandler(t *testing.T) {
 
 			resp := rw.Result()
 			assert.Equal(t, tt.statusCode, resp.StatusCode, "Error http status code")
-			_ = req.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }

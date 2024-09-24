@@ -18,7 +18,7 @@ func TestRegisterHandler(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	userUuid := uuid.New()
+	userUUID := uuid.New()
 	user := mocks.NewMockUser(mockCtrl)
 	authenticate := amocks.NewMockAuth(mockCtrl)
 
@@ -27,7 +27,7 @@ func TestRegisterHandler(t *testing.T) {
 	}).Return(uuid.Nil, services.ErrValidation).AnyTimes()
 	user.EXPECT().Add(context.Background(), services.InputDataUser{
 		Login: "spqr", Password: "123456",
-	}).Return(userUuid, nil).AnyTimes().MaxTimes(1)
+	}).Return(userUUID, nil).AnyTimes().MaxTimes(1)
 	user.EXPECT().Add(context.Background(), services.InputDataUser{
 		Login: "spqr", Password: "123456",
 	}).Return(uuid.Nil, services.ErrLoginExists).AnyTimes().MinTimes(1)
@@ -68,13 +68,13 @@ func TestRegisterHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rw := httptest.NewRecorder()
 			req := httptest.NewRequest("POST", "/api/user/register", bytes.NewReader(tt.body))
-			authenticate.EXPECT().SetCookie(rw, userUuid).AnyTimes()
+			authenticate.EXPECT().SetCookie(rw, userUUID).AnyTimes()
 			req.Header.Add("Content-Type", tt.contentType)
 			RegisterHandler(user, authenticate)(rw, req)
 
 			resp := rw.Result()
 			assert.Equal(t, tt.statusCode, resp.StatusCode, "Error http status code")
-			_ = req.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }

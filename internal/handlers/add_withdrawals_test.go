@@ -62,7 +62,7 @@ func TestAddWithdrawalHandler(t *testing.T) {
 
 			resp := rw.Result()
 			assert.Equal(t, tt.statusCode, resp.StatusCode, "Error http status code")
-			_ = req.Body.Close()
+			_ = resp.Body.Close()
 		})
 	}
 }
