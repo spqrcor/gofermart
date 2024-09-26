@@ -5,6 +5,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
+	"time"
 )
 
 func connect(logger *zap.Logger, databaseURI string) (*sql.DB, error) {
@@ -13,6 +14,11 @@ func connect(logger *zap.Logger, databaseURI string) (*sql.DB, error) {
 		logger.Fatal(err.Error())
 		return nil, err
 	}
+
+	db.SetConnMaxLifetime(time.Minute * 5)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+
 	if err := db.Ping(); err != nil {
 		logger.Error(err.Error())
 		return nil, err
